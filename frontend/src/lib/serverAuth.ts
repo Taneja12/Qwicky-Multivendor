@@ -1,16 +1,16 @@
 import { NextRequest } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from './auth';
 
 /**
- * Small contract:
- * - isAuthenticatedFromRequest(req?): boolean
- * - isProtectedRoute(path): boolean
- *
- * This helper reads the session token cookie securely on the server.
- * It intentionally does not return any sensitive user data.
+ * Define which routes require authentication
  */
+export const protectedRoutes: string[] = [];
 
-export const protectedRoutes = [];
-export const publicOnlyRoutes = [];
+/**
+ * Define which routes should only be accessible when NOT authenticated
+ */
+export const publicOnlyRoutes: string[] = [];
 
 export function isProtectedRoute(pathname: string) {
   return protectedRoutes.some((r) => pathname === r || pathname.startsWith(r + '/'));
@@ -32,16 +32,13 @@ export function isAuthenticatedFromRequest(req?: NextRequest): boolean {
   return Boolean(token);
 }
 
-// Named exports are already declared above.
-
 // Async helper for server components that need the full NextAuth session.
 export async function requireUserSession() {
   try {
-    const { getServerSession } = await import('next-auth/next');
-    const { authOptions } = await import('./auth');
-    const session = await getServerSession(authOptions as any);
+    const session = await getServerSession(authOptions);
     return session;
   } catch (e) {
+    console.error('Error getting session:', e);
     return null;
   }
 }
