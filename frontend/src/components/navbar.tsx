@@ -6,7 +6,6 @@ import { useSession, signOut } from 'next-auth/react';
 import { usePersistTokens } from '@/hooks/usePersistTokens';
 import { Menu, ShoppingCart, User, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -42,10 +41,7 @@ const NavLink = ({ href, children, className, onClick }: NavLinkProps) => {
     >
       {children}
       {isActive && (
-        <motion.div
-          className="absolute bottom-0 left-0 h-0.5 w-full bg-sky-600"
-          layoutId="navbar-indicator"
-        />
+        <div className="absolute bottom-0 left-0 h-0.5 w-full bg-sky-600" />
       )}
     </Link>
   );
@@ -59,11 +55,7 @@ export function Navbar() {
   const userRole = (session?.user as UserWithRole | undefined)?.role ?? null;
 
   return (
-    <motion.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shadow-sm"
-    >
+   <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo and desktop navigation */}
@@ -92,12 +84,7 @@ export function Navbar() {
                   <User className="h-5 w-5 text-gray-600 dark:text-gray-300" />
                 </button>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-                >
+                <div className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                   <div className="py-1">
                     <Link
                       href="/profile"
@@ -120,7 +107,7 @@ export function Navbar() {
                       Sign Out
                     </button>
                   </div>
-                </motion.div>
+                </div>
               </div>
             ) : (
               <div className="hidden md:flex items-center space-x-4">
@@ -179,7 +166,7 @@ export function Navbar() {
           </div>
         </div>
       </div>
-    </motion.nav>
+    </nav>
+    
   );
 }
-

@@ -59,7 +59,7 @@ export default function HomePage() {
   }, [query, vendors]);
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-12 pt-16">
       <header className="relative bg-gradient-to-br from-emerald-500 via-emerald-400 to-sky-400 rounded-xl p-8 text-white overflow-hidden animate-fade-in">
         {/* Subtle pattern overlay */}
         <div className="absolute inset-0 bg-black/5" 
