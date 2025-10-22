@@ -4,7 +4,6 @@ import { isAuthenticatedFromRequest, isProtectedRoute, isPublicOnlyRoute } from 
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-
   // Redirect unauthenticated users trying to access protected routes
   if (isProtectedRoute(pathname) && !isAuthenticatedFromRequest(request)) {
     const url = new URL('/login', request.url);

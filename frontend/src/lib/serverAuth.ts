@@ -9,8 +9,8 @@ import { NextRequest } from 'next/server';
  * It intentionally does not return any sensitive user data.
  */
 
-export const protectedRoutes = ['/dashboard', '/settings', '/profile', '/orders', '/vendor/dashboard'];
-export const publicOnlyRoutes = ['/login', '/register'];
+export const protectedRoutes = [];
+export const publicOnlyRoutes = [];
 
 export function isProtectedRoute(pathname: string) {
   return protectedRoutes.some((r) => pathname === r || pathname.startsWith(r + '/'));

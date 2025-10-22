@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { usePersistTokens } from '@/hooks/usePersistTokens';
-import { Menu, ShoppingCart, User } from 'lucide-react';
+import { Menu, ShoppingCart, User, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
@@ -49,12 +49,23 @@ const NavLink = ({ href, children, className, onClick }: NavLinkProps) => {
 export function Navbar() {
   const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   usePersistTokens();
 
   const userRole = (session?.user as UserWithRole | undefined)?.role ?? null;
+  const pathname = usePathname();
+
+  const handleLinkClick = () => {
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleSignOut = () => {
+    signOut();
+    setIsMobileMenuOpen(false);
+  };
 
   return (
-   <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shadow-sm">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo and desktop navigation */}
@@ -78,7 +89,7 @@ export function Navbar() {
             </Link>
 
             {session ? (
-              <div className="relative group">
+              <div className="hidden md:block relative group">
                 <button className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                   <User className="h-5 w-5 text-gray-600 dark:text-gray-300" />
                 </button>
@@ -100,7 +111,7 @@ export function Navbar() {
                       </Link>
                     )}
                     <button
-                      onClick={() => signOut()}
+                      onClick={handleSignOut}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       Sign Out
@@ -127,36 +138,82 @@ export function Navbar() {
 
             {/* Mobile menu */}
             <div className="md:hidden">
-              <Sheet>
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <button className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">
                     <Menu className="h-5 w-5" />
                   </button>
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[300px] sm:w-[400px] dark:bg-gray-900">
-                  <div className="flex flex-col space-y-4 mt-8">
-                    <NavLink href="/" onClick={() => setIsOpen(false)}>
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-lg font-semibold">Menu</h2>
+                    <button 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="p-1 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                  
+                  <div className="flex flex-col space-y-4">
+                    <NavLink href="/" onClick={handleLinkClick}>
                       Home
                     </NavLink>
-                    <NavLink href="/vendors" onClick={() => setIsOpen(false)}>
+                    <NavLink href="/vendors" onClick={handleLinkClick}>
                       Vendors
                     </NavLink>
-                    <NavLink href="/orders" onClick={() => setIsOpen(false)}>
+                    <NavLink href="/orders" onClick={handleLinkClick}>
                       Orders
                     </NavLink>
-                    {!session && (
+
+                    {session ? (
                       <>
-                        <NavLink href="/login" onClick={() => setIsOpen(false)}>
+                        {/* Mobile user menu */}
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                          <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                            Signed in as {session.user?.email}
+                          </div>
+                          <Link
+                            href="/profile"
+                            onClick={handleLinkClick}
+                            className="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-md"
+                          >
+                            Profile
+                          </Link>
+                          {userRole === 'VENDOR' && (
+                            <Link
+                              href="/vendor/dashboard"
+                              onClick={handleLinkClick}
+                              className="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-md"
+                            >
+                              Vendor Dashboard
+                            </Link>
+                          )}
+                          <button
+                            onClick={handleSignOut}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-md"
+                          >
+                            Sign Out
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
+                        <Link
+                          href="/login"
+                          onClick={handleLinkClick}
+                          className="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-md text-center"
+                        >
                           Login
-                        </NavLink>
+                        </Link>
                         <Link
                           href="/register"
-                          onClick={() => setIsOpen(false)}
-                          className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-md text-center transition-colors"
+                          onClick={handleLinkClick}
+                          className="block bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 rounded-md text-center transition-colors"
                         >
                           Register
                         </Link>
-                      </>
+                      </div>
                     )}
                   </div>
                 </SheetContent>
@@ -166,6 +223,5 @@ export function Navbar() {
         </div>
       </div>
     </nav>
-    
   );
 }
