@@ -11,9 +11,19 @@ function getImageUrl(raw?: string | null) {
   return `${API_BASE}/${raw}`;
 }
 
-type Canteen = { id: number; name: string; location?: string | null; image?: string | null };
+type Canteen = { 
+  id: number; 
+  name: string; 
+  location?: string | null; 
+  image?: string | null 
+};
 
-type Vendor = { id: number; business_name: string; description?: string | null; canteen?: Canteen | null };
+type Vendor = { 
+  id: number; 
+  business_name: string; 
+  description?: string | null; 
+  canteen?: Canteen | null 
+};
 
 async function getVendors() {
   try {
@@ -35,8 +45,8 @@ export default async function VendorsPage() {
         {vendors.map((v: Vendor) => (
           <div key={v.id} className="rounded-lg overflow-hidden shadow hover:shadow-lg transition">
             <div className="relative h-40 w-full">
-               <Image 
-                src={v.canteen?.image_url || '/images/canteen-placeholder.jpg'} 
+              <Image 
+                src={getImageUrl(v.canteen?.image) || '/images/canteen-placeholder.jpg'} 
                 alt={`${v.business_name} image`} 
                 fill 
                 className="object-cover" 
@@ -44,7 +54,9 @@ export default async function VendorsPage() {
             </div>
             <div className="p-4 bg-white dark:bg-gray-800">
               <h2 className="text-lg font-semibold">{v.business_name}</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-300">{v.canteen?.name} • {v.canteen?.location}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                {v.canteen?.name} • {v.canteen?.location || 'No location'}
+              </p>
               <div className="mt-4 flex justify-between items-center">
                 <Link href={`/vendors/${v.id}`} className="text-sky-600 hover:underline">View menu</Link>
               </div>

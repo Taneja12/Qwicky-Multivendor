@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SessionProvider } from 'next-auth/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -8,7 +8,7 @@ import { Toaster, toast } from 'react-hot-toast';
 
 const queryClient = new QueryClient();
 
-export function Providers({ children }: { children: React.ReactNode }) {
+function ProvidersContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -33,10 +33,20 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [searchParams]);
 
   return (
+    <>
+      {children}
+      <Toaster position="bottom-right" toastOptions={{ style: { background: '#0b0b0b', color: '#fff' } }} />
+    </>
+  );
+}
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
     <SessionProvider>
       <QueryClientProvider client={queryClient}>
-        {children}
-        <Toaster position="bottom-right" toastOptions={{ style: { background: '#0b0b0b', color: '#fff' } }} />
+        <Suspense fallback={children}>
+          <ProvidersContent>{children}</ProvidersContent>
+        </Suspense>
       </QueryClientProvider>
     </SessionProvider>
   );

@@ -4,11 +4,10 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { usePersistTokens } from '@/hooks/usePersistTokens';
-import { Menu, ShoppingCart, User, X } from 'lucide-react';
+import { Menu, ShoppingCart, User } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
 
 type UserWithRole = {
   name?: string | null;

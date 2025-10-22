@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { requireUserSession } from '@/lib/serverAuth';
+import { Suspense } from 'react';
 
 interface UserProfile {
   id: number;
@@ -11,7 +12,36 @@ interface UserProfile {
   last_login?: string;
 }
 
-export default async function ProfilePage() {
+// Create a type for the fallback user data
+interface FallbackUserData {
+  email: string;
+  first_name: string;
+  last_name: string;
+  date_joined: string;
+  phone_number: string;
+  last_login?: never;
+}
+
+// Union type for userData
+type UserData = UserProfile | FallbackUserData;
+
+// Helper function to check if userData has last_login
+function hasLastLogin(userData: UserData): userData is UserProfile {
+  return 'last_login' in userData && userData.last_login !== undefined;
+}
+
+function ProfileContent() {
+  return (
+    <div className="max-w-4xl mx-auto space-y-8 p-4 md:p-6">
+      <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-4 pt-10">
+        Your Profile
+      </h1>
+      <p className="text-gray-600 dark:text-gray-400">Profile content would go here...</p>
+    </div>
+  );
+}
+
+async function ProfileData() {
   const session = await requireUserSession();
   if (!session) return redirect('/login');
 
@@ -32,12 +62,14 @@ export default async function ProfilePage() {
     console.error('Failed to fetch user profile:', error);
   }
 
-  // If no API data, use session data as fallback
-  const userData = userProfile || {
-    email: session.user?.email || 'Unknown',
-    first_name: session.user?.name?.split(' ')[0] || '',
-    last_name: session.user?.name?.split(' ')[1] || '',
+  const s = session as { user?: { email?: string; name?: string } };
+
+  const userData: UserData = userProfile || {
+    email: s.user?.email || 'Unknown',
+    first_name: s.user?.name?.split(' ')[0] || '',
+    last_name: s.user?.name?.split(' ')[1] || '',
     date_joined: new Date().toISOString(),
+    phone_number: '',
   };
 
   function formatDate(dateString: string) {
@@ -150,7 +182,8 @@ export default async function ProfilePage() {
                       </div>
                     </div>
 
-                    {userData.last_login && (
+                    {/* Fixed: Use type guard to check for last_login */}
+                    {hasLastLogin(userData) && userData.last_login && (
                       <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
                         <div className="flex items-center justify-between">
                           <div>
@@ -201,5 +234,58 @@ export default async function ProfilePage() {
         </div>
       </section>
     </>
+  );
+}
+
+function ProfileLoading() {
+  return (
+    <section className="max-w-4xl mx-auto space-y-8 p-4 md:p-6">
+      <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-4 pt-10">
+        Your Profile
+      </h1>
+      <div className="animate-pulse">
+        <div className="bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700">
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded w-48 mb-2"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-64"></div>
+              </div>
+              <div className="text-right">
+                <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-16 mb-2"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-32"></div>
+              </div>
+            </div>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded w-32 mb-4"></div>
+                <div className="space-y-3">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                </div>
+              </div>
+              <div>
+                <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded w-32 mb-4"></div>
+                <div className="space-y-3">
+                  <div className="h-20 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                  <div className="h-20 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<ProfileLoading />}>
+      <ProfileData />
+    </Suspense>
   );
 }

@@ -6,8 +6,11 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing STRIPE_SECRET_KEY in server environment');
 }
 
+// Use the latest API version consistently
+const STRIPE_API_VERSION = '2025-09-30.clover' as const;
+
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2025-09-30.clover', // match installed stripe typings/runtime
+  apiVersion: STRIPE_API_VERSION,
 });
 
 export const getStripeInstance = () => {
@@ -15,7 +18,7 @@ export const getStripeInstance = () => {
     throw new Error('Missing STRIPE_SECRET_KEY');
   }
   return new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2023-10-16',
+    apiVersion: STRIPE_API_VERSION, // Use the same API version
   });
 };
 
