@@ -32,13 +32,10 @@ if os.getenv('ALLOWED_HOSTS'):
     ALLOWED_HOSTS.extend(os.getenv('ALLOWED_HOSTS').split(','))
 
 # Production security settings
-SECURE_HSTS_SECONDS = 31536000  # 1 year
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
-SECURE_SSL_REDIRECT = not DEBUG  # Redirect HTTP to HTTPS in production
+
+SECURE_SSL_REDIRECT = False  # Redirect HTTP to HTTPS in production
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # For proxy setups
 
 # Ensure SECRET_KEY is strong in production
 if not DEBUG:
