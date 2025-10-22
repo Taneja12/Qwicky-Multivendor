@@ -19,9 +19,9 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # Production allowed hosts - replace with your actual domain
 ALLOWED_HOSTS = [
-    'yourdomain.com',
+    'qwicky-multivendor.vercel.app',
     'www.yourdomain.com',
-    'your-app.herokuapp.com',  # If using Heroku
+    'qwicky-multivendor.onrender.com',  # If using Heroku
     'your-app.render.com',     # If using Render
     'localhost',               # For local development
     '127.0.0.1',              # For local development
