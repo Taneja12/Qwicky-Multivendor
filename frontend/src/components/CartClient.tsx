@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import { useStripe } from '@/lib/stripe-client';
 import { useSession } from 'next-auth/react';
 
-// --- Type Definitions (Keeping these) ---
+// --- Type Definitions ---
 
 type Product = {
   id: number;
@@ -42,7 +42,7 @@ const formatCurrency = (amount: number | string | undefined): string => {
   return `₹${value.toFixed(2)}`;
 };
 
-// --- CartItem Component (Adapted for Dark Mode) ---
+// --- CartItem Component ---
 
 type CartItemProps = {
   item: CartItem;
@@ -56,46 +56,37 @@ const CartItemDisplay: React.FC<CartItemProps> = ({ item, onUpdateQuantity, onRe
   const itemTotalPrice = item.total_price ?? (price * item.quantity);
 
   return (
-    // Dark mode: Border color is dark gray (700)
     <li key={item.id} className={`flex items-start gap-4 p-3 border-b border-gray-200 last:border-b-0 dark:border-gray-700 transition-opacity ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
       
       <div className="flex-1 min-w-0 ">
-        {/* Dark mode: Text is white */}
         <div className="font-semibold text-gray-800 dark:text-white truncate ">{item.product.name}</div>
-        {/* Dark mode: Secondary text is light gray (400) */}
         <div className="text-sm text-gray-500 dark:text-gray-400">{formatCurrency(price)} each</div>
         {item.note && <p className="text-xs italic text-gray-500 dark:text-gray-500 mt-1">Note: {item.note}</p>}
       </div>
 
       <div className="flex items-center gap-3 md:gap-4 ml-auto">
-        {/* Quantity Control Input */}
         <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded overflow-hidden">
           <input
             type="number"
             min={1}
             value={item.quantity}
             onChange={(e) => onUpdateQuantity(item.id, Math.max(1, Number(e.target.value)))}
-            // Dark mode: Input background is dark gray (800), text is white, border focus is emerald
             className="w-16 text-center px-1 py-1 text-sm border-none bg-white dark:bg-gray-800 dark:text-white focus:ring-emerald-500 focus:border-emerald-500"
             aria-label={`Quantity for ${item.product.name}`}
             disabled={isLoading}
           />
         </div>
 
-        {/* Total Price for Item */}
         <div className="font-bold text-gray-800 dark:text-white w-20 text-right">
           {formatCurrency(itemTotalPrice)}
         </div>
 
-        {/* Remove Button (Icon) */}
         <button
           onClick={() => onRemoveItem(item.id)}
-          // Dark mode: Hover background is dark gray (700)
           className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 dark:hover:bg-gray-700 transition-colors"
           aria-label={`Remove ${item.product.name} from cart`}
           disabled={isLoading}
         >
-          {/* SVG stroke color (Icon color) */}
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
@@ -105,21 +96,25 @@ const CartItemDisplay: React.FC<CartItemProps> = ({ item, onUpdateQuantity, onRe
   );
 };
 
-// --- Main CartClient Component (Adapted for Dark Mode) ---
+// --- Main CartClient Component ---
 
 export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) {
   const { data: session } = useSession();
   const { stripe, loading: stripeLoading } = useStripe();
-  const [carts, setCarts] = useState<Cart[]>(initialCarts || []);
+  const [carts, setCarts] = useState<Cart[]>([]);
   const [loading, setLoading] = useState(false);
   const [itemActionLoading, setItemActionLoading] = useState<number | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [whitening, setWhitening] = useState(false); // New state for whitening effect
+  const [whitening, setWhitening] = useState(false);
 
-  // ... (fetchCarts, updateQuantity, removeItem, clearCart functions remain the same)
+  // Ensure carts is always an array
+  const safeCarts = Array.isArray(carts) ? carts : [];
+
   useEffect(() => {
-    if (!initialCarts || initialCarts.length === 0) {
+    if (initialCarts && Array.isArray(initialCarts)) {
+      setCarts(initialCarts);
+    } else {
       void fetchCarts();
     }
   }, [initialCarts]);
@@ -128,9 +123,29 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
     setLoading(true);
     try {
       const res = await api.get('/api/cart/carts/');
-      setCarts(res.data || []);
+      
+      // Handle different response formats
+      let cartsData: Cart[] = [];
+      
+      if (Array.isArray(res.data)) {
+        // Direct array response
+        cartsData = res.data;
+      } else if (res.data && Array.isArray(res.data.results)) {
+        // Paginated response
+        cartsData = res.data.results;
+      } else if (res.data && Array.isArray(res.data.carts)) {
+        // Nested carts array
+        cartsData = res.data.carts;
+      } else if (res.data && typeof res.data === 'object') {
+        // Single cart object
+        cartsData = [res.data];
+      }
+      
+      console.log('Processed carts data:', cartsData);
+      setCarts(cartsData);
     } catch (error) {
       console.error("Failed to fetch carts:", error);
+      setCarts([]); // Ensure carts is always an array
     } finally {
       setLoading(false);
     }
@@ -138,7 +153,7 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
 
   async function updateQuantity(itemId: number, qty: number) {
     if (qty < 1 || itemActionLoading) return; 
-    const originalCarts = carts;
+    const originalCarts = safeCarts;
     setItemActionLoading(itemId);
 
     try {
@@ -188,20 +203,17 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
     }
 
     setCheckoutLoading(cart.id);
-    setWhitening(true); // Start whitening effect
+    setWhitening(true);
 
     try {
-      // 2. Create Stripe Checkout Session with cart ID
       const response = await api.post('/api/payments/checkout/', { 
         cartId: cart.id,
       });
 
       const { url } = response.data;
 
-      // Add a small delay to show the whitening effect before redirect
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 3. Redirect to Stripe Checkout URL directly
       if (url) {
         window.location.href = url;
       } else {
@@ -210,16 +222,19 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
     } catch (error: any) {
       console.error('Checkout error:', error);
       toast.error(error.response?.data?.error || 'Failed to initialize checkout. Please try again.');
-      setWhitening(false); // Stop whitening effect on error
+      setWhitening(false);
     } finally {
       setCheckoutLoading(null);
     }
   }
 
-  // --- Render Logic ---
+  // Check if all carts are empty
+  const allCartsEmpty = safeCarts.length === 0 || 
+    (Array.isArray(safeCarts) && safeCarts.every(cart => 
+      cart && Array.isArray(cart.items) && cart.items.length === 0
+    ));
 
-  if (loading && carts.length === 0) {
-    // Dark mode: Text is white/light gray
+  if (loading && safeCarts.length === 0) {
     return (
       <div className="p-8 text-center text-lg text-gray-600 dark:text-gray-300">
         <svg className="animate-spin h-5 w-5 mr-3 inline text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24"></svg>
@@ -228,8 +243,7 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
     );
   }
 
-  if (carts.length === 0 || carts.every(c => c.items.length === 0)) {
-    // Dark mode: Text is white/light gray
+  if (allCartsEmpty) {
     return (
       <div className="p-8 text-center">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Your Cart is Empty!</h1>
@@ -263,22 +277,42 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
         <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-4">Your Shopping Cart(s)</h1>
 
         <div className="space-y-8">
-          {carts.map((cart) => cart.items.length > 0 && (
+          {safeCarts.map((cart) => cart && Array.isArray(cart.items) && cart.items.length > 0 && (
             <article key={cart.id} className="bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700">
               <header className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                 <div>
-                  <h2 className="text-xl font-bold text-emerald-700 dark:text-emerald-400">{typeof cart.canteen === 'object' && cart.canteen ? cart.canteen.name : `Canteen ${cart.canteen ?? 'Unknown'}`}</h2>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Total Items: <span className="font-medium">{cart.item_count ?? cart.items.length}</span></div>
+                  <h2 className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
+                    {typeof cart.canteen === 'object' && cart.canteen ? 
+                      (cart.canteen as Canteen).name : 
+                      `Canteen ${cart.canteen ?? 'Unknown'}`
+                    }
+                  </h2>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Total Items: <span className="font-medium">{cart.item_count ?? (Array.isArray(cart.items) ? cart.items.length : 0)}</span>
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-extrabold text-gray-900 dark:text-white">{formatCurrency(cart.total_price)}</div>
-                  <button aria-label={`Clear all items from cart ${cart.id}`} onClick={() => clearCart(cart.id)} className="text-sm text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 mt-1 transition-colors" disabled={loading}>Remove All Items</button>
+                  <button 
+                    aria-label={`Clear all items from cart ${cart.id}`} 
+                    onClick={() => clearCart(cart.id)} 
+                    className="text-sm text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 mt-1 transition-colors" 
+                    disabled={loading}
+                  >
+                    Remove All Items
+                  </button>
                 </div>
               </header>
 
               <ul className="divide-y divide-gray-200 dark:divide-gray-700 p-4" aria-live="polite">
-                {cart.items.map((it) => (
-                  <CartItemDisplay key={it.id} item={it} onUpdateQuantity={updateQuantity} onRemoveItem={removeItem} isLoading={itemActionLoading === it.id || loading} />
+                {Array.isArray(cart.items) && cart.items.map((it) => (
+                  <CartItemDisplay 
+                    key={it.id} 
+                    item={it} 
+                    onUpdateQuantity={updateQuantity} 
+                    onRemoveItem={removeItem} 
+                    isLoading={itemActionLoading === it.id || loading} 
+                  />
                 ))}
               </ul>
 
@@ -336,31 +370,44 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
           </div>
         </div>
         <div className="p-4 overflow-auto h-full">
-          {carts.length === 0 ? (
+          {safeCarts.length === 0 ? (
             <p className="text-gray-400">Your cart is empty.</p>
           ) : (
-            carts.map(cart => (
+            safeCarts.map(cart => (
               <div key={cart.id} className="mb-6">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="font-medium">{typeof cart.canteen === 'object' ? (cart.canteen as Canteen).name : `Canteen ${cart.canteen}`}</div>
+                  <div className="font-medium">
+                    {typeof cart.canteen === 'object' ? 
+                      (cart.canteen as Canteen).name : 
+                      `Canteen ${cart.canteen}`
+                    }
+                  </div>
                   <div className="text-sm">{formatCurrency(cart.total_price)}</div>
                 </div>
                 <ul className="space-y-2">
-                  {cart.items.map(it => (
+                  {Array.isArray(cart.items) && cart.items.map(it => (
                     <li key={it.id} className="flex items-center justify-between">
                       <div>
                         <div className="font-medium">{it.product.name}</div>
                         <div className="text-sm text-gray-400">{formatCurrency(it.product.price)}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <input type="number" min={1} value={it.quantity} onChange={(e) => updateQuantity(it.id, Math.max(1, Number(e.target.value)))} className="w-16 rounded px-2 py-1 text-black" />
+                        <input 
+                          type="number" 
+                          min={1} 
+                          value={it.quantity} 
+                          onChange={(e) => updateQuantity(it.id, Math.max(1, Number(e.target.value)))} 
+                          className="w-16 rounded px-2 py-1 text-black" 
+                        />
                         <button onClick={() => removeItem(it.id)} className="text-red-400 hover:text-red-300">Remove</button>
                       </div>
                     </li>
                   ))}
                 </ul>
                 <div className="mt-3 flex justify-between items-center">
-                  <div className="text-sm text-gray-400">Items: {cart.item_count ?? cart.items.length}</div>
+                  <div className="text-sm text-gray-400">
+                    Items: {cart.item_count ?? (Array.isArray(cart.items) ? cart.items.length : 0)}
+                  </div>
                   <div className="text-lg font-semibold">{formatCurrency(cart.total_price)}</div>
                 </div>
               </div>

@@ -83,15 +83,6 @@ function formatDate(dateString: string) {
   });
 }
 
-function formatDateOnly(dateString: string) {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-IN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-}
-
 function formatCurrency(amount: string | number): string {
   const value = typeof amount === 'string' ? parseFloat(amount) : amount ?? 0;
   return `₹${value.toFixed(2)}`;
@@ -102,30 +93,89 @@ export default async function OrdersPage() {
   if (!session) return redirect('/login');
 
   const access = (session as any)?.access || (session as any)?.user?.access;
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/orders/`, {
-    cache: 'no-store',
-    headers: access ? { Authorization: `Bearer ${access}` } : undefined,
-  });
   
-  const orders: Order[] = res.ok ? await res.json() : [];
+  if (!access) {
+    console.error('No access token found in session');
+    return redirect('/login');
+  }
+
+  let orders: Order[] = [];
+  let error = null;
+
+  try {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    console.log('Fetching orders from:', `${API_URL}/api/orders/`);
+    
+    const res = await fetch(`${API_URL}/api/orders/`, {
+      cache: 'no-store',
+      headers: {
+        'Authorization': `Bearer ${access}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log('Response status:', res.status);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('API Error:', res.status, errorText);
+      throw new Error(`Failed to fetch orders: ${res.status} ${errorText}`);
+    }
+
+    const data = await res.json();
+    console.log('Raw API response:', data);
+
+    // Handle different response formats
+    if (Array.isArray(data)) {
+      orders = data;
+    } else if (data && Array.isArray(data.results)) {
+      orders = data.results;
+    } else if (data && Array.isArray(data.orders)) {
+      orders = data.orders;
+    } else {
+      console.warn('Unexpected API response format:', data);
+      orders = [];
+    }
+
+    console.log('Processed orders:', orders);
+
+  } catch (err) {
+    console.error('Error fetching orders:', err);
+    error = err instanceof Error ? err.message : 'Failed to load orders';
+  }
 
   return (
     <>
-      {/* Main orders listing - exact same structure as cart */}
-      <section aria-label="Your orders" className="max-w-4xl mx-auto space-y-8 pt-16 p-4  md:p-6">
+      <section aria-label="Your orders" className="max-w-4xl mx-auto space-y-8 pt-16 p-4 md:p-6">
         <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-4 pt-10">
           Your Orders
         </h1>
 
-        {orders.length ? (
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
+            <h2 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
+              Failed to Load Orders
+            </h2>
+            <p className="text-red-600 dark:text-red-300 mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+
+        {orders.length > 0 ? (
           <div className="space-y-8">
             {orders.map((order) => (
               <article key={order.id} className="bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700">
-                {/* Order Header - same as cart header */}
                 <header className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                   <div>
                     <h2 className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
-                      {order.vendor_details.business_name}
+                      {order.vendor_details?.business_name || 'Unknown Vendor'}
                     </h2>
                     <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                       Order #{order.id} • Placed on {formatDate(order.created_at)}
@@ -136,16 +186,15 @@ export default async function OrdersPage() {
                       {formatCurrency(order.total_amount)}
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Location: {order.vendor_details.canteen.name}
+                      Location: {order.vendor_details?.canteen?.name || 'Unknown Location'}
                     </div>
                   </div>
                 </header>
 
-                {/* Order Items - similar to cart items list */}
                 <ul className="divide-y divide-gray-200 dark:divide-gray-700 p-4" aria-live="polite">
-                  {order.items.map((item) => (
+                  {order.items?.map((item) => (
                     <li key={item.id} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
-                      {item.product_details.image_url && (
+                      {item.product_details?.image_url && (
                         <img 
                           src={item.product_details.image_url} 
                           alt={item.product_details.name}
@@ -154,8 +203,8 @@ export default async function OrdersPage() {
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-gray-800 dark:text-white">
-                          {item.product_details.name}
-                          {item.product_details.is_veg && (
+                          {item.product_details?.name || 'Unknown Product'}
+                          {item.product_details?.is_veg && (
                             <span className="ml-2 text-xs text-green-600 dark:text-green-400">🟢 Veg</span>
                           )}
                         </div>
@@ -168,8 +217,7 @@ export default async function OrdersPage() {
                           </p>
                         )}
                         
-                        {/* Customizations */}
-                        {item.customizations.length > 0 && (
+                        {item.customizations?.length > 0 && (
                           <div className="mt-2">
                             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Customizations:</p>
                             <div className="space-y-1">
@@ -185,14 +233,12 @@ export default async function OrdersPage() {
                       </div>
 
                       <div className="flex items-center gap-3 md:gap-4 ml-auto">
-                        {/* Quantity Display */}
                         <div className="flex items-center">
                           <div className="w-16 text-center px-1 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 dark:text-white">
                             Qty: {item.quantity}
                           </div>
                         </div>
 
-                        {/* Total Price for Item */}
                         <div className="font-bold text-gray-800 dark:text-white w-20 text-right">
                           {formatCurrency(item.total_price)}
                         </div>
@@ -201,7 +247,6 @@ export default async function OrdersPage() {
                   ))}
                 </ul>
 
-                {/* Order Status & Actions - similar to cart footer */}
                 <footer className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
                   <div className="text-gray-600 dark:text-gray-400">
                     <div className="flex items-center gap-4 text-sm">
@@ -232,7 +277,6 @@ export default async function OrdersPage() {
                   </div>
                 </footer>
 
-                {/* Order Note (if any) */}
                 {order.note && (
                   <div className="px-4 pb-4">
                     <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -245,7 +289,7 @@ export default async function OrdersPage() {
               </article>
             ))}
           </div>
-        ) : (
+        ) : !error ? (
           <div className="p-8 text-center">
             <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">No Orders Yet!</h1>
             <p className="text-gray-600 dark:text-gray-400">
@@ -258,13 +302,7 @@ export default async function OrdersPage() {
               Browse Menu
             </Link>
           </div>
-        )}
-
-        {/* Loading State (matching cart style) */}
-        {/* <div className="fixed inset-0 bg-white bg-opacity-10 dark:bg-gray-900 dark:bg-opacity-75 flex items-center justify-center z-50">
-          <svg className="animate-spin h-8 w-8 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24"></svg>
-          <span className="ml-3 text-lg font-medium text-gray-700 dark:text-white">Loading Orders...</span>
-        </div> */}
+        ) : null}
       </section>
     </>
   );
