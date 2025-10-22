@@ -79,6 +79,7 @@ class OrderSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop('items')
         # Set initial status to PENDING_PAYMENT
         validated_data['status'] = Order.Status.PENDING_PAYMENT
+        validated_data['total_amount'] = 0  # Set default to avoid IntegrityError
         order = Order.objects.create(**validated_data)
 
         # Create order items with current prices

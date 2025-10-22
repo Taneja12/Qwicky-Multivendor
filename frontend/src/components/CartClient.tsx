@@ -59,9 +59,9 @@ const CartItemDisplay: React.FC<CartItemProps> = ({ item, onUpdateQuantity, onRe
     // Dark mode: Border color is dark gray (700)
     <li key={item.id} className={`flex items-start gap-4 p-3 border-b border-gray-200 last:border-b-0 dark:border-gray-700 transition-opacity ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
       
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 ">
         {/* Dark mode: Text is white */}
-        <div className="font-semibold text-gray-800 dark:text-white truncate">{item.product.name}</div>
+        <div className="font-semibold text-gray-800 dark:text-white truncate ">{item.product.name}</div>
         {/* Dark mode: Secondary text is light gray (400) */}
         <div className="text-sm text-gray-500 dark:text-gray-400">{formatCurrency(price)} each</div>
         {item.note && <p className="text-xs italic text-gray-500 dark:text-gray-500 mt-1">Note: {item.note}</p>}
@@ -189,19 +189,26 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
     setCheckoutLoading(cart.id);
 
     try {
-      // 1. Create order first
-      const orderResponse = await api.post('/api/orders/', { 
-        cartId: cart.id,
-      });
+      // 1. Create order first (send vendor and items)
+      // const orderPayload = {
+      //   vendor: typeof cart.canteen === 'object' && cart.canteen ? cart.canteen.id : cart.canteen,
+      //   items: cart.items.map((item) => ({
+      //     product: item.product.id,
+      //     quantity: item.quantity,
+      //     note: item.note || '',
+      //   })),
+      // };
 
-      if (!orderResponse.data?.id) {
-        throw new Error('Failed to create order');
-      }
+      // const orderResponse = await api.post('/api/orders/', orderPayload);
 
-      // 2. Create Stripe Checkout Session with order ID
-      const response = await api.post('/api/checkout', { 
-        orderId: orderResponse.data.id,
-      });
+      // if (!orderResponse.data?.id) {
+      //   throw new Error('Failed to create order');
+      // }
+
+        // 2. Create Stripe Checkout Session with cart ID
+        const response = await api.post('/api/payments/checkout/', { 
+          cartId: cart.id,
+        });
 
       const { url } = response.data;
 

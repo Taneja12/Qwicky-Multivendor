@@ -145,7 +145,7 @@ export default function VendorPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-16">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div className="flex items-center gap-6">
           <div className="w-36 h-24 relative rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700">

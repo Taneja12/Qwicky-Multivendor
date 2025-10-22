@@ -15,7 +15,7 @@ export default async function CartPage() {
   const carts = res.ok ? await res.json() : [];
 
   return (
-    <main>
+    <main className="max-w-3xl mx-auto pt-16">
       <CartWrapper initialCarts={carts} />
     </main>
   );
