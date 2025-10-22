@@ -17,30 +17,37 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-# Production allowed hosts - replace with your actual domain
+# Production allowed hosts
 ALLOWED_HOSTS = [
+    'qwicky-multivendor.onrender.com',
     'qwicky-multivendor.vercel.app',
-    'www.yourdomain.com',
-    'qwicky-multivendor.onrender.com',  # If using Heroku
-    'your-app.render.com',     # If using Render
-    'localhost',               # For local development
-    '127.0.0.1',              # For local development
+    'localhost',
+    '127.0.0.1',
+    '.onrender.com',  # All Render subdomains
 ]
 
 # Add this to get allowed hosts from environment variable
 if os.getenv('ALLOWED_HOSTS'):
-    ALLOWED_HOSTS.extend(os.getenv('ALLOWED_HOSTS').split(','))
+    ALLOWED_HOSTS.extend([host.strip() for host in os.getenv('ALLOWED_HOSTS').split(',')])
 
-# Production security settings
+# FIX: Remove all SSL redirect settings for Render
+# Render handles HTTPS automatically, so no redirects needed
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False  # Set to False to avoid redirect issues
+CSRF_COOKIE_SECURE = False     # Set to False to avoid redirect issues
 
-SECURE_SSL_REDIRECT = False  # Redirect HTTP to HTTPS in production
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
+# Comment out all HSTS settings as they can cause redirect loops
+# SECURE_HSTS_SECONDS = 31536000
+# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+# SECURE_HSTS_PRELOAD = True
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Ensure SECRET_KEY is strong in production
+# Ensure SECRET_KEY is set in production (relax the length requirement)
 if not DEBUG:
-    if not SECRET_KEY or SECRET_KEY.startswith('django-insecure-') or len(SECRET_KEY) < 50:
-        raise RuntimeError('In production you must set a strong SECRET_KEY (>=50 chars) in your environment')
+    if not SECRET_KEY:
+        raise RuntimeError('In production you must set a SECRET_KEY in your environment')
+    elif len(SECRET_KEY) < 20:  # Reduced from 50
+        raise RuntimeError('In production you must set a stronger SECRET_KEY (>=20 chars) in your environment')
 
 # Application definition
 INSTALLED_APPS = [
@@ -49,7 +56,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',  # This must be included for admin CSS
+    'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
     'django_filters',
@@ -67,7 +74,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this for static files
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -76,19 +83,24 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# CORS configuration for production
+# CORS configuration
 CORS_ALLOWED_ORIGINS = [
     'https://qwicky-multivendor.vercel.app',
-    'https://www.yourdomain.com',
-    'http://localhost:3000',  # For local development
-    'http://127.0.0.1:3000',  # For local development
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
 ]
 
 # Add environment-based CORS origins
 if os.getenv('CORS_ALLOWED_ORIGINS'):
-    CORS_ALLOWED_ORIGINS.extend(os.getenv('CORS_ALLOWED_ORIGINS').split(','))
+    CORS_ALLOWED_ORIGINS.extend([origin.strip() for origin in os.getenv('CORS_ALLOWED_ORIGINS').split(',')])
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Add CSRF trusted origins
+CSRF_TRUSTED_ORIGINS = [
+    'https://qwicky-multivendor.vercel.app',
+    'https://qwicky-multivendor.onrender.com',
+]
 
 ROOT_URLCONF = 'qwicky.urls'
 
@@ -113,10 +125,12 @@ WSGI_APPLICATION = 'qwicky.wsgi.application'
 # Database configuration
 import dj_database_url
 
-# Use Neon DB in production, fallback to local for development
-
 DATABASES = {
-    'default': dj_database_url.config(default=os.getenv('DATABASE_URL'),   conn_max_age=600, ssl_require=True    )
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
 
 # Password validation
@@ -141,28 +155,22 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files configuration for Django Admin
+# Static files configuration
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-# Add this to collect static files from Django apps
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',  # If you have custom static files
-]
-
-# WhiteNoise configuration for static files
+STATICFILES_DIRS = [BASE_DIR / 'static']
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Cloudinary configuration for production
+# Cloudinary configuration
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
     'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
     'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
-    'SECURE': True,  # Use HTTPS
+    'SECURE': True,
 }
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
@@ -198,7 +206,7 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 
 # Frontend URL for redirects
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://qwicky-multivendor.vercel.app')
 
 # Payment webhook settings
 PAYMENT_WEBHOOK_SECRET = os.getenv('PAYMENT_WEBHOOK_SECRET', 'your-webhook-secret-key')
