@@ -2,15 +2,22 @@ from rest_framework import serializers
 from .models import Cart, CartItem, CartItemCustomization
 from products.serializers import ProductSerializer
 from products.models import Product, CustomizationOption
+from vendors.models import Canteen  # Add this import
 
+# Add this Canteen serializer
+class CanteenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Canteen
+        fields = ['id', 'name', 'location', 'description', 'is_active']
 
 class CartItemCustomizationSerializer(serializers.ModelSerializer):
     option_id = serializers.IntegerField(write_only=True)
+    option_name = serializers.CharField(source='option.name', read_only=True)  # Add this
+    option_price = serializers.DecimalField(source='option.price_addition', read_only=True, max_digits=10, decimal_places=2)  # Add this
 
     class Meta:
         model = CartItemCustomization
-        fields = ['id', 'option_id']
-
+        fields = ['id', 'option_id', 'option_name', 'option_price']  # Updated fields
 
 class CartItemSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
@@ -27,7 +34,7 @@ class CartItemSerializer(serializers.ModelSerializer):
             'quantity',
             'note',
             'customizations',
-            'total_price',   # ✅ added missing field
+            'total_price',
             'created_at'
         ]
 
@@ -55,7 +62,7 @@ class CartItemSerializer(serializers.ModelSerializer):
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
-    canteen = serializers.PrimaryKeyRelatedField(read_only=True)
+    canteen = CanteenSerializer(read_only=True)  # Changed from PrimaryKeyRelatedField to CanteenSerializer
     total_price = serializers.SerializerMethodField(read_only=True)
     item_count = serializers.SerializerMethodField(read_only=True)
 
@@ -66,8 +73,8 @@ class CartSerializer(serializers.ModelSerializer):
             'user',
             'canteen',
             'items',
-            'total_price',   # ✅ present
-            'item_count',    # ✅ added
+            'total_price',
+            'item_count',
             'created_at',
             'updated_at'
         ]

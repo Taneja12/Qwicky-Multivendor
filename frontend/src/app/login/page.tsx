@@ -16,7 +16,7 @@ export default function LoginPage() {
   // Check auth status on mount and when session changes
   useEffect(() => {
     if (session) {
-      router.push('/dashboard');
+      router.push('/');
     }
     
     const message = searchParams.get('message');
