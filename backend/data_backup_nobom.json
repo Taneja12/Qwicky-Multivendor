@@ -1,0 +1,225 @@
+﻿[
+{
+  "model": "sessions.session",
+  "pk": "ipcwrjck1u2obgyqsqigiz4kghcht46y",
+  "fields": {
+    "session_data": ".eJxVjDkOwjAUBe_iGlneF0r6nMH63wsOIFuKkwpxd2QpBbRvZt6bBDj2Go6Rt7AmciWCXH43hPjMbYL0gHbvNPa2byvSqdCTDrr0lF-30_07qDDqrFF4FY2PUaJzinkphCqcFaOZtc4wBPBalCiTlpPYzJUFK5KTHIshny_ITjcV:1v6nJd:LkFRKrDeR6xbn8t0NsmzFsjq2Ye2nHrFXjoyoVr5jrM",
+    "expire_date": "2025-10-23T09:52:05.723Z"
+  }
+},
+{
+  "model": "users.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$0K8h5ygoUyD5k47HKh5CM0$YTxYt6aKYgAM6GXFbiGH16FyOEsBZVBRaB28TTg6xao=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-09T09:48:31.202Z",
+    "username": "deepanshu",
+    "email": "deepanshu@gmail.com",
+    "role": "STUDENT",
+    "phone": "",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$RGP7LyPKIu4WbNnFVRcARi$1UmCePsH4SGqB/UAgVI7XgYNTVA0fKIVblEF4+rReLE=",
+    "last_login": "2025-10-09T09:52:05.718Z",
+    "is_superuser": true,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-10-09T09:51:58.168Z",
+    "username": "dee",
+    "email": "dee@gmail.com",
+    "role": "STUDENT",
+    "phone": "",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$m8wxh0EHYz7U1iZa5GokZv$80m7NtWo1+UCPgmsMghr/wqI3UgJzEoF9xOVLct4zSI=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "Deepanshu",
+    "last_name": "Taneja",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-21T11:39:06.637Z",
+    "username": "taneja74163",
+    "email": "taneja74163@gmail.com",
+    "role": "STUDENT",
+    "phone": "",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$yHR4Vo7FrnCbrXG9w0SFQE$/KfuXo8NhT1WRvU0+7z+PdGS5KWB/m0h6QjVzd43Zo8=",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "Deepanshu",
+    "last_name": "Taneja",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-21T12:55:09.997Z",
+    "username": "deepanshutaneja762",
+    "email": "deepanshutaneja762@gmail.com",
+    "role": "STUDENT",
+    "phone": "",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "fields": {
+    "password": "",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-21T13:58:33.163Z",
+    "username": "vendor1",
+    "email": "vendor1@example.com",
+    "role": "STUDENT",
+    "phone": "",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "fields": {
+    "password": "",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-21T13:58:33.192Z",
+    "username": "vendor2",
+    "email": "vendor2@example.com",
+    "role": "STUDENT",
+    "phone": "",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "users.user",
+  "fields": {
+    "password": "",
+    "last_login": null,
+    "is_superuser": false,
+    "first_name": "",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-10-21T13:58:33.221Z",
+    "username": "vendor3",
+    "email": "vendor3@example.com",
+    "role": "STUDENT",
+    "phone": "",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "vendors.canteen",
+  "pk": 1,
+  "fields": {
+    "name": "Nescafe",
+    "location": "Infront of B block",
+    "image": "image/upload/v1761056917/canteens/vc2b3l95chedwktrykuc.jpg",
+    "description": "",
+    "is_active": true,
+    "created_at": "2025-10-21T13:25:29.442Z",
+    "updated_at": "2025-10-21T14:28:36.982Z"
+  }
+},
+{
+  "model": "vendors.vendorprofile",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "deepanshutaneja762@gmail.com"
+    ],
+    "canteen": 1,
+    "business_name": "Nescafe",
+    "description": "",
+    "avg_preparation_time": 15,
+    "is_open": true,
+    "opening_time": "08:00:00",
+    "closing_time": "13:28:24",
+    "monday": true,
+    "tuesday": true,
+    "wednesday": true,
+    "thursday": true,
+    "friday": true,
+    "saturday": false,
+    "sunday": false,
+    "created_at": "2025-10-21T13:28:41.446Z",
+    "updated_at": "2025-10-21T13:28:41.446Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 1,
+  "fields": {
+    "name": "Snacks",
+    "description": "",
+    "is_active": true
+  }
+},
+{
+  "model": "products.category",
+  "pk": 2,
+  "fields": {
+    "name": "Meals",
+    "description": "",
+    "is_active": true
+  }
+},
+{
+  "model": "products.category",
+  "pk": 3,
+  "fields": {
+    "name": "Drinks",
+    "description": "",
+    "is_active": true
+  }
+},
+{
+  "model": "products.product",
+  "pk": 1,
+  "fields": {
+    "vendor": 1,
+    "category": 1,
+    "name": "Samosa",
+    "description": "",
+    "price": "15.00",
+    "image": "image/upload/v1761057080/products/cuyvkhhwwjilnfrq8ffp.jpg",
+    "is_available": true,
+    "is_veg": true,
+    "preparation_time": 15,
+    "created_at": "2025-10-21T13:31:42.711Z",
+    "updated_at": "2025-10-21T14:31:21.021Z"
+  }
+}
+]
