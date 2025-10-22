@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Order, OrderItem, OrderItemCustomization
+from vendors.serializers import VendorProfileSerializer  # Import your existing vendor serializer
+from products.serializers import ProductSerializer  # Import your existing product serializer
 
 class OrderItemCustomizationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,16 +10,17 @@ class OrderItemCustomizationSerializer(serializers.ModelSerializer):
         read_only_fields = ['name_at_time', 'price_at_time']
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    customizations = OrderItemCustomizationSerializer(many=True, required=False)
+    customizations = OrderItemCustomizationSerializer(many=True, required=False, read_only=True)
     total_price = serializers.DecimalField(
         max_digits=10, decimal_places=2, 
         read_only=True, source='get_total_price'
     )
+    product_details = ProductSerializer(source='product', read_only=True)  # Use your existing product serializer
 
     class Meta:
         model = OrderItem
         fields = [
-            'id', 'product', 'quantity', 'unit_price',
+            'id', 'product', 'product_details', 'quantity', 'unit_price',
             'note', 'customizations', 'total_price'
         ]
         read_only_fields = ['unit_price']
@@ -39,15 +42,16 @@ class OrderItemSerializer(serializers.ModelSerializer):
         return order_item
 
 class OrderSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True)
+    items = OrderItemSerializer(many=True, read_only=True)
     total_amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)
+    vendor_details = VendorProfileSerializer(source='vendor', read_only=True)  # Use your existing vendor serializer
 
     class Meta:
         model = Order
         fields = [
-            'id', 'user', 'vendor', 'status', 'status_display',
+            'id', 'user', 'vendor', 'vendor_details', 'status', 'status_display',
             'total_amount', 'pickup_time', 'note', 'items',
             'payment_id', 'transaction_id', 'payment_gateway',
             'payment_status', 'payment_status_display',

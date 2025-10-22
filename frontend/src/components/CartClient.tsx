@@ -115,6 +115,7 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
   const [itemActionLoading, setItemActionLoading] = useState<number | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [whitening, setWhitening] = useState(false); // New state for whitening effect
 
   // ... (fetchCarts, updateQuantity, removeItem, clearCart functions remain the same)
   useEffect(() => {
@@ -187,30 +188,18 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
     }
 
     setCheckoutLoading(cart.id);
+    setWhitening(true); // Start whitening effect
 
     try {
-      // 1. Create order first (send vendor and items)
-      // const orderPayload = {
-      //   vendor: typeof cart.canteen === 'object' && cart.canteen ? cart.canteen.id : cart.canteen,
-      //   items: cart.items.map((item) => ({
-      //     product: item.product.id,
-      //     quantity: item.quantity,
-      //     note: item.note || '',
-      //   })),
-      // };
-
-      // const orderResponse = await api.post('/api/orders/', orderPayload);
-
-      // if (!orderResponse.data?.id) {
-      //   throw new Error('Failed to create order');
-      // }
-
-        // 2. Create Stripe Checkout Session with cart ID
-        const response = await api.post('/api/payments/checkout/', { 
-          cartId: cart.id,
-        });
+      // 2. Create Stripe Checkout Session with cart ID
+      const response = await api.post('/api/payments/checkout/', { 
+        cartId: cart.id,
+      });
 
       const { url } = response.data;
+
+      // Add a small delay to show the whitening effect before redirect
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // 3. Redirect to Stripe Checkout URL directly
       if (url) {
@@ -221,6 +210,7 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
     } catch (error: any) {
       console.error('Checkout error:', error);
       toast.error(error.response?.data?.error || 'Failed to initialize checkout. Please try again.');
+      setWhitening(false); // Stop whitening effect on error
     } finally {
       setCheckoutLoading(null);
     }
@@ -243,13 +233,27 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
     return (
       <div className="p-8 text-center">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Your Cart is Empty!</h1>
-  <p className="text-gray-600 dark:text-gray-400">Looks like you haven&apos;t added anything yet. Start browsing delicious items!</p>
+        <p className="text-gray-600 dark:text-gray-400">Looks like you haven&apos;t added anything yet. Start browsing delicious items!</p>
       </div>
     );
   }
 
   return (
     <>
+      {/* Whitening Overlay */}
+      {whitening && (
+        <div className="fixed inset-0 bg-white z-50 transition-all duration-500 ease-in-out flex items-center justify-center">
+          <div className="text-center">
+            <svg className="animate-spin h-12 w-12 text-emerald-600 mx-auto mb-4" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Redirecting to Checkout...</h2>
+            <p className="text-gray-600">Please wait while we prepare your payment</p>
+          </div>
+        </div>
+      )}
+
       <div className="fixed bottom-6 right-6 z-50">
         <button onClick={() => setDrawerOpen(true)} aria-label="Open cart" className="bg-emerald-600 text-white px-3 py-2 rounded-full shadow-lg">Cart</button>
       </div>
@@ -296,7 +300,7 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
                       : 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:scale-105 hover:shadow-emerald-600/30 focus:ring-emerald-500/30'
                   }`}
                   onClick={() => handleCheckout(cart)}
-                  disabled={loading || checkoutLoading === cart.id || !stripe}
+                  disabled={loading || checkoutLoading === cart.id || !stripe || whitening}
                 >
                   {checkoutLoading === cart.id ? (
                     <>
@@ -364,7 +368,6 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
           )}
         </div>
       </div>
-
     </>
   );
 }
