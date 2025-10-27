@@ -146,10 +146,15 @@ export default async function OrdersPage() {
 
   return (
     <>
-      <section aria-label="Your orders" className="max-w-4xl mx-auto space-y-8 pt-16 p-4 md:p-6">
-        <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-4 pt-10">
-          Your Orders
-        </h1>
+      <section aria-label="Your orders" className="max-w-4xl mx-auto space-y-8 pt-16 p-4 md:p-6 mt-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">
+            Your Recent Orders
+          </h1>
+          <div className="text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+            Showing last 3 orders
+          </div>
+        </div>
 
         {/* Error Display */}
         {error && (
@@ -166,8 +171,6 @@ export default async function OrdersPage() {
             </button>
           </div>
         )}
-
-      
 
         {orders.length > 0 ? (
           <div className="space-y-8">

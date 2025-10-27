@@ -35,7 +35,7 @@ class OrderListCreateAPIView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         """Return orders for the authenticated user only."""
-        return Order.objects.filter(user=self.request.user).order_by('-created_at')
+        return Order.objects.filter(user=self.request.user).order_by('-created_at')[:3]
 
     def perform_create(self, serializer):
         """Set the authenticated user before saving the order."""
