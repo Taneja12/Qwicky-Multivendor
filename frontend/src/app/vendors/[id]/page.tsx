@@ -40,7 +40,6 @@ export default function VendorPage() {
 
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState<number | null>(null);
   const { data: session } = useSession();
@@ -49,7 +48,6 @@ export default function VendorPage() {
   useEffect(() => {
     let mounted = true;
     async function fetchData() {
-      setLoading(true);
       setError(null);
       try {
         const [vRes, pRes] = await Promise.all([
@@ -76,8 +74,6 @@ export default function VendorPage() {
       } catch {
         if (!mounted) return;
         setError('Unable to load vendor or products.');
-      } finally {
-        if (mounted) setLoading(false);
       }
     }
     void fetchData();
@@ -126,23 +122,11 @@ export default function VendorPage() {
     }
   };
 
-  if (loading) return (
-    <div className="py-12 flex justify-center">
-      <div className="animate-spin h-6 w-6 border-4 border-sky-500 rounded-full border-t-transparent" />
-    </div>
-  );
-  
-  if (error) return (
-    <div className="py-8 text-red-600 dark:text-red-400 text-center">
-      {error}
-    </div>
-  );
-  
-  if (!vendor) return (
-    <div className="py-8 text-center text-gray-600 dark:text-gray-400">
-      Vendor not found.
-    </div>
-  );
+  // Don't render anything until data is loaded
+  // The loading.tsx will handle the loading state
+  if (!vendor || error) {
+    return null;
+  }
 
   return (
     <div className="space-y-6 pt-16">

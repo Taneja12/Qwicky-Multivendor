@@ -104,7 +104,6 @@ export default async function OrdersPage() {
 
   try {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-    console.log('Fetching orders from:', `${API_URL}/api/orders/`);
     
     const res = await fetch(`${API_URL}/api/orders/`, {
       cache: 'no-store',
@@ -113,17 +112,13 @@ export default async function OrdersPage() {
         'Content-Type': 'application/json',
       },
     });
-
-    console.log('Response status:', res.status);
     
     if (!res.ok) {
       const errorText = await res.text();
-      console.error('API Error:', res.status, errorText);
       throw new Error(`Failed to fetch orders: ${res.status} ${errorText}`);
     }
 
     const data = await res.json();
-    console.log('Raw API response:', data);
 
     // Handle different response formats
     if (Array.isArray(data)) {
@@ -133,11 +128,8 @@ export default async function OrdersPage() {
     } else if (data && Array.isArray(data.orders)) {
       orders = data.orders;
     } else {
-      console.warn('Unexpected API response format:', data);
       orders = [];
     }
-
-    console.log('Processed orders:', orders);
 
   } catch (err) {
     console.error('Error fetching orders:', err);

@@ -102,25 +102,18 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
   const { data: session } = useSession();
   const { stripe, loading: stripeLoading } = useStripe();
   const [carts, setCarts] = useState<Cart[]>([]);
-  const [loading, setLoading] = useState(false);
   const [itemActionLoading, setItemActionLoading] = useState<number | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [whitening, setWhitening] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
 
-  // Ensure carts is always an array
-  const safeCarts = Array.isArray(carts) ? carts : [];
-
+  // Always fetch carts on client side to ensure fresh data
   useEffect(() => {
-    if (initialCarts && Array.isArray(initialCarts)) {
-      setCarts(initialCarts);
-    } else {
-      void fetchCarts();
-    }
-  }, [initialCarts]);
+    fetchCarts();
+  }, []);
 
   async function fetchCarts() {
-    setLoading(true);
     try {
       const res = await api.get('/api/cart/carts/');
       
@@ -141,28 +134,28 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
         cartsData = [res.data];
       }
       
-      console.log('Processed carts data:', cartsData);
+      console.log('Client fetched carts:', cartsData);
       setCarts(cartsData);
     } catch (error) {
       console.error("Failed to fetch carts:", error);
-      setCarts([]); // Ensure carts is always an array
+      setCarts([]);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }
 
   async function updateQuantity(itemId: number, qty: number) {
     if (qty < 1 || itemActionLoading) return; 
-    const originalCarts = safeCarts;
     setItemActionLoading(itemId);
 
     try {
-        await api.patch(`/api/cart/items/${itemId}/`, { quantity: qty });
-        await fetchCarts(); 
+      await api.patch(`/api/cart/items/${itemId}/`, { quantity: qty });
+      // Refresh carts after update
+      await fetchCarts();
       toast.success(`Quantity updated — ${qty}`);
     } catch (error) {
       console.error("Failed to update quantity:", error);
-      setCarts(originalCarts);
+      toast.error('Failed to update quantity');
     } finally {
       setItemActionLoading(null);
     }
@@ -174,25 +167,26 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
     setItemActionLoading(itemId);
     try {
       await api.delete(`/api/cart/items/${itemId}/`);
+      // Refresh carts after removal
       await fetchCarts();
       toast.success('Item removed');
     } catch (error) {
       console.error("Failed to remove item:", error);
+      toast.error('Failed to remove item');
     } finally {
       setItemActionLoading(null);
     }
   }
 
   async function clearCart(cartId: number) {
-    setLoading(true); 
     try {
       await api.post(`/api/cart/carts/${cartId}/clear/`);
+      // Refresh carts after clear
       await fetchCarts();
       toast.success('Cart cleared — All items removed');
     } catch (error) {
       console.error("Failed to clear cart:", error);
-    } finally {
-      setLoading(false);
+      toast.error('Failed to clear cart');
     }
   }
 
@@ -228,17 +222,23 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
     }
   }
 
-  // Check if all carts are empty
-  const allCartsEmpty = safeCarts.length === 0 || 
-    (Array.isArray(safeCarts) && safeCarts.every(cart => 
-      cart && Array.isArray(cart.items) && cart.items.length === 0
-    ));
+  // Use the local state carts directly
+  const displayCarts = carts;
 
-  if (loading && safeCarts.length === 0) {
+  // Check if all carts are empty
+  const allCartsEmpty = displayCarts.length === 0 || 
+    displayCarts.every(cart => 
+      cart && Array.isArray(cart.items) && cart.items.length === 0
+    );
+
+  // Show loading state while fetching
+  if (isLoading) {
     return (
-      <div className="p-8 text-center text-lg text-gray-600 dark:text-gray-300">
-        <svg className="animate-spin h-5 w-5 mr-3 inline text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24"></svg>
-        Loading cart...
+      <div className="p-8 text-center">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 mx-auto mb-4"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 mx-auto"></div>
+        </div>
       </div>
     );
   }
@@ -277,7 +277,7 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
         <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-4">Your Shopping Cart(s)</h1>
 
         <div className="space-y-8">
-          {safeCarts.map((cart) => cart && Array.isArray(cart.items) && cart.items.length > 0 && (
+          {displayCarts.map((cart) => cart && Array.isArray(cart.items) && cart.items.length > 0 && (
             <article key={cart.id} className="bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700">
               <header className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                 <div>
@@ -296,8 +296,7 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
                   <button 
                     aria-label={`Clear all items from cart ${cart.id}`} 
                     onClick={() => clearCart(cart.id)} 
-                    className="text-sm text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 mt-1 transition-colors" 
-                    disabled={loading}
+                    className="text-sm text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 mt-1 transition-colors"
                   >
                     Remove All Items
                   </button>
@@ -311,7 +310,7 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
                     item={it} 
                     onUpdateQuantity={updateQuantity} 
                     onRemoveItem={removeItem} 
-                    isLoading={itemActionLoading === it.id || loading} 
+                    isLoading={itemActionLoading === it.id} 
                   />
                 ))}
               </ul>
@@ -334,7 +333,7 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
                       : 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:scale-105 hover:shadow-emerald-600/30 focus:ring-emerald-500/30'
                   }`}
                   onClick={() => handleCheckout(cart)}
-                  disabled={loading || checkoutLoading === cart.id || !stripe || whitening}
+                  disabled={checkoutLoading === cart.id || !stripe || whitening}
                 >
                   {checkoutLoading === cart.id ? (
                     <>
@@ -352,13 +351,6 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
             </article>
           ))}
         </div>
-
-        {loading && (
-          <div className="fixed inset-0 bg-white bg-opacity-10 dark:bg-gray-900 dark:bg-opacity-75 flex items-center justify-center z-50">
-            <svg className="animate-spin h-8 w-8 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24"></svg>
-            <span className="ml-3 text-lg font-medium text-gray-700 dark:text-white">Updating Cart...</span>
-          </div>
-        )}
       </section>
 
       {/* Drawer */}
@@ -370,10 +362,10 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
           </div>
         </div>
         <div className="p-4 overflow-auto h-full">
-          {safeCarts.length === 0 ? (
+          {displayCarts.length === 0 ? (
             <p className="text-gray-400">Your cart is empty.</p>
           ) : (
-            safeCarts.map(cart => (
+            displayCarts.map(cart => (
               <div key={cart.id} className="mb-6">
                 <div className="flex items-center justify-between mb-2">
                   <div className="font-medium">

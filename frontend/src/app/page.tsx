@@ -21,6 +21,26 @@ type Vendor = {
   } | null;
 };
 
+// Vendor Skeleton Component
+const VendorSkeleton = () => {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow animate-pulse">
+      <div className="relative h-44 w-full rounded-t-lg overflow-hidden bg-gray-200 dark:bg-gray-700"></div>
+      <div className="p-4">
+        <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full mb-3"></div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-12"></div>
+          </div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function HomePage() {
   const router = useRouter();
   const [query, setQuery] = useState('');
@@ -190,10 +210,13 @@ export default function HomePage() {
             </div>
           )}
 
+          {/* Loading Skeleton */}
           {loading && (
-            <div className="col-span-full text-gray-600 text-center py-8">
-              Loading vendors...
-            </div>
+            <>
+              {[1, 2, 3, 4, 5, 6].map((item) => (
+                <VendorSkeleton key={item} />
+              ))}
+            </>
           )}
 
           {!loading && vendorsToRender.length === 0 && (
@@ -202,7 +225,7 @@ export default function HomePage() {
             </div>
           )}
 
-          {vendorsToRender.map((vendor) => (
+          {!loading && vendorsToRender.map((vendor) => (
             <article key={vendor.id} className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow">
               <div className="relative h-44 w-full rounded-t-lg overflow-hidden bg-gray-200">
                 <Image
