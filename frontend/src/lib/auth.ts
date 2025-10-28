@@ -1,7 +1,73 @@
-import { NextAuthOptions } from 'next-auth';
-import type { DefaultSession } from 'next-auth';
+import { NextAuthOptions, User, DefaultSession } from 'next-auth';
 import CredentialsProvider from "next-auth/providers/credentials";
 import { authApi } from "@/lib/api";
+
+declare module 'next-auth' {
+  interface Session extends DefaultSession {
+    user: {
+      id: string;
+      role?: string;
+    } & DefaultSession['user'];
+    access?: string;
+    refresh?: string;
+    error?: string;
+  }
+
+  interface User {
+    id: string;
+    role?: string;
+    access?: string;
+    refresh?: string;
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id: string;
+    role?: string;
+    access?: string;
+    refresh?: string;
+    expiresAt?: number;
+    error?: string;
+  }
+}
+
+async function refreshAccessToken(token: any) {
+  try {
+    console.log('Refreshing access token...');
+    
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/token/refresh/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        refresh: token.refresh,
+      }),
+    });
+
+    const refreshedTokens = await response.json();
+
+    if (!response.ok) {
+      throw new Error('Failed to refresh token');
+    }
+
+    return {
+      ...token,
+      access: refreshedTokens.access,
+      refresh: refreshedTokens.refresh || token.refresh, // Fall back to old refresh token if new one isn't provided
+      expiresAt: Date.now() + (60 * 60 * 1000), // 1 hour from now
+      error: undefined, // Clear any previous errors
+    };
+  } catch (error) {
+    console.error('Error refreshing access token:', error);
+    
+    return {
+      ...token,
+      error: 'RefreshAccessTokenError',
+    };
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -21,7 +87,6 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (user) {
-            // Return user plus tokens to be stored in the JWT callback
             return {
               id: user.id.toString(),
               email: user.email,
@@ -29,7 +94,6 @@ export const authOptions: NextAuthOptions = {
               role: user.role,
               access,
               refresh,
-              ...user,
             };
           }
           return null;
@@ -46,31 +110,46 @@ export const authOptions: NextAuthOptions = {
     error: '/login',
   },
   callbacks: {
-    // Use any for callback params to match next-auth's expected signatures
-    async jwt(params: any) {
-      const { token, user } = params;
+    async jwt({ token, user, trigger, session }) {
+      // Initial sign in
       if (user) {
-        if (user.role) token.role = user.role;
-        if (user.id) token.id = user.id;
-        if ((user as any).access) token.access = (user as any).access;
-        if ((user as any).refresh) token.refresh = (user as any).refresh;
+        console.log('Initial JWT creation for user:', user.email);
+        return {
+          ...token,
+          id: user.id,
+          role: user.role,
+          access: user.access,
+          refresh: user.refresh,
+          expiresAt: Date.now() + (60 * 60 * 1000), // 1 hour from now
+        };
       }
-      return token;
+
+      // Check if token needs refresh (5 minutes before expiry)
+      if (token.expiresAt && Date.now() < token.expiresAt - 5 * 60 * 1000) {
+        console.log('Token still valid, returning existing token');
+        return token;
+      }
+
+      // Token is expired or about to expire, try to refresh
+      console.log('Token needs refresh, attempting refresh...');
+      return await refreshAccessToken(token);
     },
-    async session(params: any) {
-      const { session, token } = params;
-      if (token) {
-        if (session.user) {
-          if (token.role) (session.user as any).role = token.role;
-          if (token.id) (session.user as any).id = token.id;
-        }
-        if (token.access) (session as any).access = token.access;
-        if (token.refresh) (session as any).refresh = token.refresh;
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id;
+        session.user.role = token.role;
       }
+      session.access = token.access;
+      session.refresh = token.refresh;
+      session.error = token.error;
+      
+      console.log('Session callback - error:', token.error);
       return session;
     }
   },
   session: {
     strategy: "jwt",
+    maxAge: 24 * 60 * 60, // 24 hours
   },
+  secret: process.env.NEXTAUTH_SECRET,
 };

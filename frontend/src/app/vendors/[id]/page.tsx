@@ -1,11 +1,8 @@
-"use client";
-
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import api from '../../../lib/api';
-import { useSession } from 'next-auth/react';
-import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { toast } from 'react-hot-toast';
+import AddToCart from './AddToCart';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -34,98 +31,45 @@ type Product = {
   preparation_time?: number;
 };
 
-export default function VendorPage() {
-  const params = useParams();
-  const id = params?.id as string;
+async function getVendorData(id: string): Promise<Vendor> {
+  const res = await fetch(`${API_BASE}/api/vendors/vendors/${id}/`, {
+    next: { revalidate: 60 } // Cache for 60 seconds
+  });
 
-  const [vendor, setVendor] = useState<Vendor | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [adding, setAdding] = useState<number | null>(null);
-  const { data: session } = useSession();
-  const accessToken = session ? (session as unknown as { access?: string }).access ?? null : null;
+  if (!res.ok) {
+    throw new Error('Failed to fetch vendor');
+  }
 
-  useEffect(() => {
-    let mounted = true;
-    async function fetchData() {
-      setError(null);
-      try {
-        const [vRes, pRes] = await Promise.all([
-          fetch(`${API_BASE}/api/vendors/vendors/${id}/`),
-          fetch(`${API_BASE}/api/products/products/?vendor=${id}`),
-        ]);
+  return res.json();
+}
 
-        if (!vRes.ok) throw new Error('Vendor not found');
-        if (!pRes.ok) throw new Error('Products failed');
+async function getProducts(id: string): Promise<Product[]> {
+  const res = await fetch(`${API_BASE}/api/products/products/?vendor=${id}`, {
+    next: { revalidate: 60 } // Cache for 60 seconds
+  });
 
-        const vdata = await vRes.json();
-        const pdataJson = await pRes.json();
+  if (!res.ok) {
+    throw new Error('Failed to fetch products');
+  }
 
-        console.log('Vendor data:', vdata);
-        console.log('Products response:', pdataJson);
+  const data = await res.json();
+  
+  // Handle DRF's pagination format
+  return Array.isArray(data) ? data : data.results ? data.results : [];
+}
 
-        // Handle DRF's pagination format
-        const pdata: Product[] = Array.isArray(pdataJson) ? pdataJson : 
-                                pdataJson.results ? pdataJson.results : [];
+export default async function VendorPage({ params }: { params: { id: string } }) {
+  let vendor: Vendor;
+  let products: Product[];
 
-        if (!mounted) return;
-        setVendor(vdata);
-        setProducts(pdata);
-      } catch {
-        if (!mounted) return;
-        setError('Unable to load vendor or products.');
-      }
-    }
-    void fetchData();
-    return () => {
-      mounted = false;
-    };
-  }, [id]);
-
-  const handleAddToCart = async (product: Product) => {
-    setAdding(product.id);
-    
-    try {
-      // Get quantity from input
-      const qtyEl = document.getElementById(`qty-${product.id}`) as HTMLInputElement | null;
-      const qty = qtyEl ? parseInt(qtyEl.value || '1', 10) : 1;
-
-      // Ensure cart exists for this canteen
-      const cartRes = accessToken
-        ? await api.post('/api/cart/carts/', { canteen: vendor?.canteen?.id }, { headers: { Authorization: `Bearer ${accessToken}` } })
-        : await api.post('/api/cart/carts/', { canteen: vendor?.canteen?.id });
-      
-      const cartData = cartRes.data;
-      const cartId = cartData.id;
-
-      // Add item to cart
-      const itemRes = accessToken
-        ? await api.post('/api/cart/items/', { cart: cartId, product_id: product.id, quantity: qty }, { headers: { Authorization: `Bearer ${accessToken}` } })
-        : await api.post('/api/cart/items/', { cart: cartId, product_id: product.id, quantity: qty });
-      
-      if (!itemRes || !itemRes.data) throw new Error('Failed to add item');
-      
-      toast.success(`${product.name} added to cart — ${qty}`);
-    } catch (err: unknown) {
-      console.error(err);
-      const axiosErr = err as { response?: { status?: number } } | undefined;
-      
-      if (axiosErr?.response?.status === 401) {
-        toast.error('Please sign in to add items to cart');
-        window.location.href = '/login';
-        return;
-      }
-      
-      toast.error('Failed to add item to cart');
-    } finally {
-      setAdding(null);
-    }
-  };
-
-  // Don't render anything until data is loaded
-  // The loading.tsx will handle the loading state
-  if (!vendor || error) {
-    return null;
+  try {
+    [vendor, products] = await Promise.all([
+      getVendorData(params.id),
+      getProducts(params.id)
+    ]);
+  } catch (error) {
+    // This will be caught by error.tsx
+    throw error;
   }
 
   return (
@@ -182,24 +126,8 @@ export default function VendorPage() {
                     </div>
                   )}
                 </div>
-                <div className="mt-3 flex items-center gap-2">
-                  <input 
-                    type="number" 
-                    min={1} 
-                    defaultValue={1} 
-                    id={`qty-${product.id}`} 
-                    className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    aria-label={`Quantity for ${product.name}`}
-                  />
-                  <button
-                    onClick={() => handleAddToCart(product)}
-                    disabled={adding === product.id}
-                    className="flex-1 px-3 py-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:bg-emerald-400 disabled:cursor-not-allowed transition-colors"
-                    aria-label={`Add ${product.name} to cart`}
-                  >
-                    {adding === product.id ? 'Adding...' : 'Add to cart'}
-                  </button>
-                </div>
+                {/* Client component for interactive cart functionality */}
+                <AddToCart product={product} vendor={vendor} />
               </li>
             ))}
           </ul>

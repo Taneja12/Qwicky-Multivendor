@@ -3,21 +3,34 @@ import { NextResponse } from 'next/server';
 
 export default withAuth(
   function middleware(req) {
-    const isAuthPage = ['/login', '/register'].includes(req.nextUrl.pathname);
-    
-    if (isAuthPage) {
-      // Redirect authenticated users away from auth pages
-      return NextResponse.redirect(new URL('/', req.url));
-    }
-    
+    // No additional logic - let the callbacks handle everything
     return NextResponse.next();
   },
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        const isAuthPage = ['/login', '/register'].includes(req.nextUrl.pathname);
-        // Allow unauthenticated access to auth pages, require auth for everything else
-        return isAuthPage ? !token : !!token;
+        const pathname = req.nextUrl.pathname;
+        
+        // List of protected routes that require authentication
+        const protectedRoutes = [
+          '/profile',
+          '/orders', 
+          '/cart',
+          '/vendor'
+        ];
+        
+        // Check if current path is a protected route
+        const isProtectedRoute = protectedRoutes.some(route => 
+          pathname === route || pathname.startsWith(route + '/')
+        );
+        
+        // If it's a protected route, require authentication
+        if (isProtectedRoute) {
+          return !!token;
+        }
+        
+        // All other routes (including /login, /register) are public
+        return true;
       },
     },
   }
@@ -25,11 +38,8 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/login',
-    '/register',
-    '/dashboard/:path*',
     '/profile/:path*',
-    '/orders/:path*',
+    '/orders/:path*', 
     '/cart/:path*',
     '/vendor/:path*',
   ],

@@ -1,29 +1,32 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, useSession, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 
 function LoginContent() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // Check auth status on mount and when session changes
+  // Debug session state
   useEffect(() => {
-    if (session) {
+    console.log('🔐 Session Status:', status);
+    console.log('🔐 Session Data:', session);
+    console.log('🔐 Search Params:', Object.fromEntries(searchParams.entries()));
+  }, [session, status, searchParams]);
+
+  // Handle redirect when authenticated - MOVED TO useEffect
+  useEffect(() => {
+    if (status === "authenticated" && session) {
+      console.log('🔄 Already authenticated, redirecting...');
       router.push('/');
     }
-    
-    const message = searchParams.get('message');
-    if (message) {
-      toast(message, { icon: '🔒' });
-    }
-  }, [session, router, searchParams]);
+  }, [status, session, router]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,6 +37,8 @@ function LoginContent() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
+    console.log('🚀 Attempting login with:', { email });
+
     try {
       const result = await signIn('credentials', {
         email,
@@ -41,27 +46,56 @@ function LoginContent() {
         redirect: false,
       });
 
+      console.log('📨 SignIn result:', result);
+
       if (result?.error) {
-        const errorMessage = result.error || 'Invalid email or password';
+        console.error('❌ SignIn error:', result.error);
+        let errorMessage = result.error;
+        
+        if (result.error.includes('CredentialsSignin')) {
+          errorMessage = 'Invalid email or password';
+        }
+        
         setError(errorMessage);
         toast.error(errorMessage);
         return;
       }
 
       if (result?.ok) {
-        toast.success('Welcome back!', { 
-          icon: '👋',
-          duration: 4000
-        });
-        router.push('/'); // Redirect to dashboard
-        router.refresh(); // Refresh the page to update session
+        console.log('✅ Login successful, waiting for session update...');
+        
+        // Wait a bit for the session to update
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Force session update
+        const updated = await update();
+        console.log('🔄 Session update result:', updated);
+        
+        // Get fresh session
+        const freshSession = await getSession();
+        console.log('🆕 Fresh session:', freshSession);
+        
+        if (freshSession) {
+          toast.success('Welcome back!', { 
+            icon: '👋',
+            duration: 4000
+          });
+          
+          // Redirect to home page
+          router.push('/');
+          router.refresh();
+        } else {
+          throw new Error('Session not created after login');
+        }
+        
       } else {
-        const errorMessage = 'Sign in failed';
+        const errorMessage = 'Sign in failed - no error but not ok';
+        console.error('❌', errorMessage, result);
         setError(errorMessage);
         toast.error(errorMessage);
       }
     } catch (error: unknown) {
-      console.error('Login error', error);
+      console.error('💥 Login error', error);
       const errorMessage = 'An error occurred. Please try again.';
       setError(errorMessage);
       toast.error(errorMessage);
@@ -79,10 +113,15 @@ function LoginContent() {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <span>Loading...</span>
+          <span>Checking authentication...</span>
         </div>
       </main>
     );
+  }
+
+  // Don't render if authenticated (will be handled by useEffect)
+  if (status === "authenticated" && session) {
+    return null;
   }
 
   return (
@@ -136,10 +175,20 @@ function LoginContent() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full inline-flex justify-center items-center gap-2 py-2 px-4 rounded-2xl text-white font-medium bg-gradient-to-r from-indigo-500 to-purple-600 hover:scale-105 transform transition-all shadow-lg hover:shadow-indigo-600/30 focus:outline-none focus:ring-4 focus:ring-indigo-500/30"
+                className="w-full inline-flex justify-center items-center gap-2 py-2 px-4 rounded-2xl text-white font-medium bg-gradient-to-r from-indigo-500 to-purple-600 hover:scale-105 transform transition-all shadow-lg hover:shadow-indigo-600/30 focus:outline-none focus:ring-4 focus:ring-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Sign in"
               >
-                {isLoading ? 'Signing in...' : 'Sign in'}
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign in'
+                )}
               </button>
             </div>
           </form>

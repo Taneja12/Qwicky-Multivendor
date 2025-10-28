@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getSession } from 'next-auth/react';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -8,15 +9,24 @@ const api = axios.create({
 });
 
 // Request interceptor to add auth token
-api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use(
+  async (config) => { // Make the interceptor function async
+    if (typeof window !== 'undefined') {
+      try {
+        const session = await getSession();
+        if (session?.access) {
+          config.headers.Authorization = `Bearer ${session.access}`;
+        }
+      } catch (error) {
+        console.error('Error getting session:', error);
+      }
     }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
 
 // Response interceptor to handle errors
 api.interceptors.response.use(
@@ -24,8 +34,7 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       // Handle token refresh or logout
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      console.log('API request returned 401, token may be expired');
     }
     return Promise.reject(error);
   }

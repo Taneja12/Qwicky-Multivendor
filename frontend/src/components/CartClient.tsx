@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Remove useEffect
 import api from '@/lib/api';
 import { toast } from 'react-hot-toast';
 import { useStripe } from '@/lib/stripe-client';
 import { useSession } from 'next-auth/react';
 
 // --- Type Definitions ---
-
 type Product = {
   id: number;
   name: string;
@@ -43,7 +42,6 @@ const formatCurrency = (amount: number | string | undefined): string => {
 };
 
 // --- CartItem Component ---
-
 type CartItemProps = {
   item: CartItem;
   onUpdateQuantity: (itemId: number, qty: number) => Promise<void>;
@@ -54,6 +52,50 @@ type CartItemProps = {
 const CartItemDisplay: React.FC<CartItemProps> = ({ item, onUpdateQuantity, onRemoveItem, isLoading }) => {
   const price = parseFloat(item.product.price);
   const itemTotalPrice = item.total_price ?? (price * item.quantity);
+  const [localQuantity, setLocalQuantity] = useState(item.quantity.toString());
+
+  // Update local quantity when item quantity changes from outside
+  useEffect(() => {
+    setLocalQuantity(item.quantity.toString());
+  }, [item.quantity]);
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Allow empty input for better UX when typing
+    if (value === '') {
+      setLocalQuantity('');
+      return;
+    }
+    
+    // Only allow numbers
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue) && numValue >= 1) {
+      setLocalQuantity(numValue.toString());
+    }
+  };
+
+  const handleQuantityBlur = () => {
+    if (localQuantity === '') {
+      // If input is empty, revert to original quantity
+      setLocalQuantity(item.quantity.toString());
+      return;
+    }
+
+    const numValue = parseInt(localQuantity, 10);
+    if (!isNaN(numValue) && numValue >= 1 && numValue !== item.quantity) {
+      onUpdateQuantity(item.id, numValue);
+    } else if (numValue !== item.quantity) {
+      // If value is invalid, revert to original quantity
+      setLocalQuantity(item.quantity.toString());
+    }
+  };
+
+  const handleQuantityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur(); // Trigger blur which will save the value
+    }
+  };
 
   return (
     <li key={item.id} className={`flex items-start gap-4 p-3 border-b border-gray-200 last:border-b-0 dark:border-gray-700 transition-opacity ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -67,10 +109,13 @@ const CartItemDisplay: React.FC<CartItemProps> = ({ item, onUpdateQuantity, onRe
       <div className="flex items-center gap-3 md:gap-4 ml-auto">
         <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded overflow-hidden">
           <input
-            type="number"
-            min={1}
-            value={item.quantity}
-            onChange={(e) => onUpdateQuantity(item.id, Math.max(1, Number(e.target.value)))}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={localQuantity}
+            onChange={handleQuantityChange}
+            onBlur={handleQuantityBlur}
+            onKeyDown={handleQuantityKeyDown}
             className="w-16 text-center px-1 py-1 text-sm border-none bg-white dark:bg-gray-800 dark:text-white focus:ring-emerald-500 focus:border-emerald-500"
             aria-label={`Quantity for ${item.product.name}`}
             disabled={isLoading}
@@ -97,21 +142,17 @@ const CartItemDisplay: React.FC<CartItemProps> = ({ item, onUpdateQuantity, onRe
 };
 
 // --- Main CartClient Component ---
-
 export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) {
   const { data: session } = useSession();
   const { stripe, loading: stripeLoading } = useStripe();
-  const [carts, setCarts] = useState<Cart[]>([]);
+  const [carts, setCarts] = useState<Cart[]>(initialCarts || []);
   const [itemActionLoading, setItemActionLoading] = useState<number | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [whitening, setWhitening] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Add loading state
 
-  // Always fetch carts on client side to ensure fresh data
-  useEffect(() => {
-    fetchCarts();
-  }, []);
+  // Remove the useEffect that fetches carts on mount
+  // Use the initialCarts prop directly through local state
 
   async function fetchCarts() {
     try {
@@ -121,26 +162,20 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
       let cartsData: Cart[] = [];
       
       if (Array.isArray(res.data)) {
-        // Direct array response
         cartsData = res.data;
       } else if (res.data && Array.isArray(res.data.results)) {
-        // Paginated response
         cartsData = res.data.results;
       } else if (res.data && Array.isArray(res.data.carts)) {
-        // Nested carts array
         cartsData = res.data.carts;
       } else if (res.data && typeof res.data === 'object') {
-        // Single cart object
         cartsData = [res.data];
       }
       
-      console.log('Client fetched carts:', cartsData);
+      console.log('Client refetched carts:', cartsData);
       setCarts(cartsData);
     } catch (error) {
       console.error("Failed to fetch carts:", error);
-      setCarts([]);
-    } finally {
-      setIsLoading(false);
+      toast.error('Failed to refresh cart data');
     }
   }
 
@@ -150,8 +185,7 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
 
     try {
       await api.patch(`/api/cart/items/${itemId}/`, { quantity: qty });
-      // Refresh carts after update
-      await fetchCarts();
+      await fetchCarts(); // Refresh after update
       toast.success(`Quantity updated — ${qty}`);
     } catch (error) {
       console.error("Failed to update quantity:", error);
@@ -167,8 +201,7 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
     setItemActionLoading(itemId);
     try {
       await api.delete(`/api/cart/items/${itemId}/`);
-      // Refresh carts after removal
-      await fetchCarts();
+      await fetchCarts(); // Refresh after removal
       toast.success('Item removed');
     } catch (error) {
       console.error("Failed to remove item:", error);
@@ -181,8 +214,7 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
   async function clearCart(cartId: number) {
     try {
       await api.post(`/api/cart/carts/${cartId}/clear/`);
-      // Refresh carts after clear
-      await fetchCarts();
+      await fetchCarts(); // Refresh after clear
       toast.success('Cart cleared — All items removed');
     } catch (error) {
       console.error("Failed to clear cart:", error);
@@ -231,18 +263,7 @@ export default function CartClient({ initialCarts }: { initialCarts?: Cart[] }) 
       cart && Array.isArray(cart.items) && cart.items.length === 0
     );
 
-  // Show loading state while fetching
-  if (isLoading) {
-    return (
-      <div className="p-8 text-center">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 mx-auto mb-4"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 mx-auto"></div>
-        </div>
-      </div>
-    );
-  }
-
+  // Remove the loading state since data comes from server
   if (allCartsEmpty) {
     return (
       <div className="p-8 text-center">
