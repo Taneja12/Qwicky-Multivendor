@@ -3,7 +3,7 @@ from rest_framework.permissions import AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Category, Product
 from .serializers import CategorySerializer, ProductSerializer
-
+from rest_framework import generics
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.filter(is_active=True).order_by('name')
@@ -19,4 +19,9 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ['vendor']
 from django.shortcuts import render
 
+
+
+class ProductDetail(generics.RetrieveAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
 # Create your views here.

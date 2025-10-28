@@ -7,6 +7,9 @@ from .serializers import UserSerializer, RegisterSerializer
 from .models import User
 
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.decorators import api_view, permission_classes
+from .services import BehaviorTrackingService
+
 
 
 class RegisterAPIView(generics.CreateAPIView):
@@ -61,3 +64,47 @@ class LogoutAPIView(APIView):
 
 		return Response(status=status.HTTP_205_RESET_CONTENT)
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def track_behavior(request):
+    """API endpoint to track user behavior"""
+    action_type = request.data.get('type')
+    product_id = request.data.get('productId')
+    vendor_id = request.data.get('vendorId')
+    category_id = request.data.get('categoryId')
+    search_query = request.data.get('searchQuery')
+    
+    product = None
+    if product_id:
+        from products.models import Product
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            pass
+    
+    vendor = None
+    if vendor_id:
+        from vendors.models import VendorProfile
+        try:
+            vendor = VendorProfile.objects.get(id=vendor_id)
+        except VendorProfile.DoesNotExist:
+            pass
+    
+    category = None
+    if category_id:
+        from products.models import Category
+        try:
+            category = Category.objects.get(id=category_id)
+        except Category.DoesNotExist:
+            pass
+    
+    BehaviorTrackingService.track_user_behavior(
+        user=request.user,
+        action_type=action_type,
+        product=product,
+        vendor=vendor,
+        category=category,
+        search_query=search_query
+    )
+    
+    return Response({'status': 'tracked'})

@@ -19,4 +19,6 @@ urlpatterns = [
     path('register/', views.RegisterAPIView.as_view(), name='register'),
     path('profile/', views.ProfileAPIView.as_view(), name='profile'),
     path('logout/', views.LogoutAPIView.as_view(), name='logout'),
+
+    path('behavior/', views.track_behavior, name='track-behavior'),
 ]

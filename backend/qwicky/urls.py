@@ -11,4 +11,5 @@ urlpatterns = [
     path('api/cart/', include('cart.urls')),
     path('api/orders/', include('orders.urls', namespace='orders')),
     path('api/payments/', include('payments.urls', namespace='payments')),
+    path('api/recommendations/', include('recommendations.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

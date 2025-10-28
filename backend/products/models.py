@@ -31,6 +31,16 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def get_similar_products(self, limit=5):
+        """Find similar products based on category, vendor, and tags"""
+        from django.db.models import Q
+        similar = Product.objects.filter(
+            Q(category=self.category) | 
+            Q(vendor=self.vendor) |
+            Q(tags__in=self.tags.all())
+        ).exclude(id=self.id).distinct()[:limit]
+        return similar
+
     def __str__(self):
         return f"{self.name} by {self.vendor.business_name}"
 

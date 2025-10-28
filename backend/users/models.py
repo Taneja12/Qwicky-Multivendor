@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone 
 
 class CustomUserManager(UserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -46,3 +47,28 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+
+class UserBehavior(models.Model):
+    ACTION_TYPES = [
+        ('VIEW_PRODUCT', 'View Product'),
+        ('ADD_TO_CART', 'Add to Cart'), 
+        ('PURCHASE', 'Purchase'),
+        ('SEARCH', 'Search'),
+        ('VIEW_CATEGORY', 'View Category'),
+        ('VIEW_VENDOR', 'View Vendor'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='behaviors')
+    action_type = models.CharField(max_length=20, choices=ACTION_TYPES)
+    product = models.ForeignKey('products.Product', on_delete=models.CASCADE, null=True, blank=True)
+    vendor = models.ForeignKey('vendors.VendorProfile', on_delete=models.CASCADE, null=True, blank=True)
+    category = models.ForeignKey('products.Category', on_delete=models.CASCADE, null=True, blank=True)
+    search_query = models.CharField(max_length=255, null=True, blank=True)
+    timestamp = models.DateTimeField(default=timezone.now)
+    
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['user', 'timestamp']),
+            models.Index(fields=['action_type', 'timestamp']),
+        ]
