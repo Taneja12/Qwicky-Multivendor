@@ -73,14 +73,97 @@ function getStatusColor(status: string) {
 }
 
 function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-IN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  try {
+    const date = new Date(dateString);
+    
+    // Force Asia/Kolkata timezone for consistent display across all servers
+    return date.toLocaleDateString('en-IN', {
+      timeZone: 'Asia/Kolkata', // Explicitly set to India timezone
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    // Fallback: simple date string without timezone conversion
+    return new Date(dateString).toLocaleString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+}
+
+function formatDateForOrderHistory(dateString: string) {
+  try {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    // For dates within last 7 days, show relative time
+    if (diffDays === 0) {
+      return 'Today at ' + date.toLocaleTimeString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } else if (diffDays === 1) {
+      return 'Yesterday at ' + date.toLocaleTimeString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    }
+    
+    // For older dates, show absolute date in India timezone
+    return date.toLocaleDateString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  } catch (error) {
+    return formatDate(dateString);
+  }
+}
+
+function formatDateTime(dateString: string) {
+  try {
+    const date = new Date(dateString);
+    return {
+      date: date.toLocaleDateString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      }),
+      time: date.toLocaleTimeString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    };
+  } catch (error) {
+    const date = new Date(dateString);
+    return { 
+      date: date.toLocaleDateString('en-IN'),
+      time: date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+    };
+  }
 }
 
 function formatCurrency(amount: string | number): string {
@@ -144,7 +227,7 @@ export default async function OrdersPage() {
             Your Recent Orders
           </h1>
           <div className="text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
-            Showing last 3 orders
+            Showing {orders.length} order{orders.length !== 1 ? 's' : ''}
           </div>
         </div>
 
@@ -166,124 +249,134 @@ export default async function OrdersPage() {
 
         {orders.length > 0 ? (
           <div className="space-y-8">
-            {orders.map((order) => (
-              <article key={order.id} className="bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700">
-                <header className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-                  <div>
-                    <h2 className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
-                      {order.vendor_details?.business_name || 'Unknown Vendor'}
-                    </h2>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Order #{order.id} • Placed on {formatDate(order.created_at)}
+            {orders.map((order) => {
+              const orderDateTime = formatDateTime(order.created_at);
+              const pickupDateTime = order.pickup_time ? formatDateTime(order.pickup_time) : null;
+              
+              return (
+                <article key={order.id} className="bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700">
+                  <header className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                    <div>
+                      <h2 className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
+                        {order.vendor_details?.business_name || 'Unknown Vendor'}
+                      </h2>
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        <div>Order #{order.id}</div>
+                        <div>
+                          Placed on {orderDateTime.date} at {orderDateTime.time} (IST)
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                      {formatCurrency(order.total_amount)}
+                    <div className="text-right">
+                      <div className="text-2xl font-extrabold text-gray-900 dark:text-white">
+                        {formatCurrency(order.total_amount)}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Location: {order.vendor_details?.canteen?.name || 'Unknown Location'}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Location: {order.vendor_details?.canteen?.name || 'Unknown Location'}
-                    </div>
-                  </div>
-                </header>
+                  </header>
 
-                <ul className="divide-y divide-gray-200 dark:divide-gray-700 p-4" aria-live="polite">
-                  {order.items?.map((item) => (
-                    <li key={item.id} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
-                      {item.product_details?.image_url && (
-                        <img 
-                          src={item.product_details.image_url} 
-                          alt={item.product_details.name}
-                          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-800 dark:text-white">
-                          {item.product_details?.name || 'Unknown Product'}
-                          {item.product_details?.is_veg && (
-                            <span className="ml-2 text-xs text-green-600 dark:text-green-400">🟢 Veg</span>
+                  <ul className="divide-y divide-gray-200 dark:divide-gray-700 p-4" aria-live="polite">
+                    {order.items?.map((item) => (
+                      <li key={item.id} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
+                        {item.product_details?.image_url && (
+                          <img 
+                            src={item.product_details.image_url} 
+                            alt={item.product_details.name}
+                            className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-gray-800 dark:text-white">
+                            {item.product_details?.name || 'Unknown Product'}
+                            {item.product_details?.is_veg && (
+                              <span className="ml-2 text-xs text-green-600 dark:text-green-400">🟢 Veg</span>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {formatCurrency(item.unit_price)} each
+                          </div>
+                          {item.note && (
+                            <p className="text-xs italic text-gray-500 dark:text-gray-500 mt-1">
+                              Note: {item.note}
+                            </p>
+                          )}
+                          
+                          {item.customizations?.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Customizations:</p>
+                              <div className="space-y-1">
+                                {item.customizations.map((custom, index) => (
+                                  <div key={index} className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                                    <span>+ {custom.name_at_time}</span>
+                                    <span>{formatCurrency(custom.price_at_time)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           )}
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {formatCurrency(item.unit_price)} each
-                        </div>
-                        {item.note && (
-                          <p className="text-xs italic text-gray-500 dark:text-gray-500 mt-1">
-                            Note: {item.note}
-                          </p>
-                        )}
-                        
-                        {item.customizations?.length > 0 && (
-                          <div className="mt-2">
-                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Customizations:</p>
-                            <div className="space-y-1">
-                              {item.customizations.map((custom, index) => (
-                                <div key={index} className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
-                                  <span>+ {custom.name_at_time}</span>
-                                  <span>{formatCurrency(custom.price_at_time)}</span>
-                                </div>
-                              ))}
+
+                        <div className="flex items-center gap-3 md:gap-4 ml-auto">
+                          <div className="flex items-center">
+                            <div className="w-16 text-center px-1 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 dark:text-white">
+                              Qty: {item.quantity}
                             </div>
                           </div>
-                        )}
-                      </div>
 
-                      <div className="flex items-center gap-3 md:gap-4 ml-auto">
-                        <div className="flex items-center">
-                          <div className="w-16 text-center px-1 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 dark:text-white">
-                            Qty: {item.quantity}
+                          <div className="font-bold text-gray-800 dark:text-white w-20 text-right">
+                            {formatCurrency(item.total_price)}
                           </div>
                         </div>
+                      </li>
+                    ))}
+                  </ul>
 
-                        <div className="font-bold text-gray-800 dark:text-white w-20 text-right">
-                          {formatCurrency(item.total_price)}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-
-                <footer className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                  <div className="text-gray-600 dark:text-gray-400">
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Status:</span>
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                          {order.status_display}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Payment:</span>
-                        <span className="text-gray-600 dark:text-gray-400">{order.payment_status_display}</span>
-                      </div>
-                      {order.pickup_time && (
+                  <footer className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                    <div className="text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">Pickup:</span>
-                          <span className="text-gray-600 dark:text-gray-400">{formatDate(order.pickup_time)}</span>
+                          <span className="font-medium">Status:</span>
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                            {order.status_display}
+                          </span>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Payment:</span>
+                          <span className="text-gray-600 dark:text-gray-400">{order.payment_status_display}</span>
+                        </div>
+                        {pickupDateTime && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">Pickup:</span>
+                            <span className="text-gray-600 dark:text-gray-400">
+                              {pickupDateTime.date} at {pickupDateTime.time} (IST)
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex space-x-3">
+                      {order.status === 'READY' && (
+                        <button className="text-sm bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors font-medium">
+                          Mark as Collected
+                        </button>
                       )}
                     </div>
-                  </div>
-                  <div className="flex space-x-3">
-                    {order.status === 'READY' && (
-                      <button className="text-sm bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors font-medium">
-                        Mark as Collected
-                      </button>
-                    )}
-                  </div>
-                </footer>
+                  </footer>
 
-                {order.note && (
-                  <div className="px-4 pb-4">
-                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
-                        <span className="font-medium">Order Note:</span> {order.note}
-                      </p>
+                  {order.note && (
+                    <div className="px-4 pb-4">
+                      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                          <span className="font-medium">Order Note:</span> {order.note}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </article>
-            ))}
+                  )}
+                </article>
+              );
+            })}
           </div>
         ) : !error ? (
           <div className="p-8 text-center">
