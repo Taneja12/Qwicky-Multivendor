@@ -1,7 +1,7 @@
 import React from 'react';
-import api from '../../../lib/api';
+// import api from '../../../lib/api';
 import Image from 'next/image';
-import { toast } from 'react-hot-toast';
+// import { toast } from 'react-hot-toast';
 import AddToCart from './AddToCart';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -59,13 +59,14 @@ async function getProducts(id: string): Promise<Product[]> {
 }
 
 export default async function VendorPage({ params }: { params: { id: string } }) {
+  const {id } = await params;
   let vendor: Vendor;
   let products: Product[];
 
   try {
     [vendor, products] = await Promise.all([
-      getVendorData(params.id),
-      getProducts(params.id)
+      getVendorData(id),
+      getProducts(id)
     ]);
   } catch (error) {
     // This will be caught by error.tsx
@@ -81,6 +82,7 @@ export default async function VendorPage({ params }: { params: { id: string } })
               src={vendor.canteen?.image_url || '/images/canteen-placeholder.jpg'} 
               alt={`${vendor.business_name} image`} 
               fill 
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className="object-cover" 
             />
           </div>
@@ -110,6 +112,7 @@ export default async function VendorPage({ params }: { params: { id: string } })
                     src={product.image_url || '/images/product-placeholder.jpg'} 
                     alt={product.name} 
                     fill 
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     className="object-cover"
                   />
                 </div>

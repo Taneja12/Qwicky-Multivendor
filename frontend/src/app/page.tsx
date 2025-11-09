@@ -89,42 +89,32 @@ const ProductSkeleton = ({ compact = false }) => {
 };
 
 // Product Card Component
-// Product Card Component
-// Product Card Component
 const ProductCard = ({ product, compact = false }: { product: Product; compact?: boolean }) => {
   const router = useRouter();
   const { data: session } = useSession();
 
-  // In your ProductCard component, replace the handleProductClick function:
-const handleProductClick = () => {
-
-  // Navigate to product detail page instead of vendor page
-  router.push(`/product/${product.id}`);
-};
+  const handleProductClick = () => {
+    router.push(`/product/${product.id}`);
+  };
 
   // Safely get image URL - handle Cloudinary objects and various formats
   const getProductImageUrl = () => {
-    // If image_url is already a string, use it
     if (typeof product.image_url === 'string') {
       return product.image_url;
     }
     
-    // If image is a Cloudinary object with url property
     if (product.image && typeof product.image === 'object' && product.image.url) {
       return product.image.url;
     }
     
-    // If image is a Cloudinary object with secure_url property
     if (product.image && typeof product.image === 'object' && product.image.secure_url) {
       return product.image.secure_url;
     }
     
-    // If image is already a string URL
     if (typeof product.image === 'string') {
       return product.image;
     }
     
-    // Fallback to placeholder
     return '/images/product-placeholder.jpg';
   };
 
@@ -141,6 +131,7 @@ const handleProductClick = () => {
             src={productImage}
             alt={product.name}
             fill
+            sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
@@ -164,6 +155,7 @@ const handleProductClick = () => {
           src={productImage}
           alt={product.name}
           fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
           className="object-cover"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
@@ -221,17 +213,6 @@ const PersonalizedSection = ({
       
       if (response.ok) {
         const data = await response.json();
-        // console.log('Recommendations API response:', data);
-        
-        // Debug: Check what's actually in the response
-        if (data.recommendations) {
-          // console.log('Recommendations array:', data.recommendations);
-          data.recommendations.forEach((item: any, index: number) => {
-            // console.log(`Product ${index}:`, item);
-            // console.log(`Product ${index} vendor:`, item.vendor);
-          });
-        }
-        
         setRecommendations(data.recommendations || []);
       } else {
         console.error('API response not OK:', response.status);
@@ -248,13 +229,11 @@ const PersonalizedSection = ({
 
   const fetchTrending = async () => {
     try {
-      // console.log('Fetching trending products...');
       const response = await fetch(
         `${API_BASE}/api/recommendations/trending/?limit=${maxItems}`
       );
       if (response.ok) {
         const data = await response.json();
-        // console.log('Trending API response:', data);
         setRecommendations(data.products || []);
       } else {
         console.error('Trending API response not OK:', response.status);
@@ -267,6 +246,7 @@ const PersonalizedSection = ({
       setLoading(false);
     }
   };
+
   if (loading) {
     return (
       <section className="my-8">
@@ -377,11 +357,19 @@ const QuickReorderSection = ({
   );
 };
 
-export default function HomePage() {
+// Popular Canteens Section Component
+const PopularCanteensSection = ({ 
+  title = "Popular Canteens",
+  maxItems = 6,
+  searchQuery = ""
+}: { 
+  title?: string; 
+  maxItems?: number;
+  searchQuery?: string;
+}) => {
   const router = useRouter();
-  const [query, setQuery] = useState('');
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -393,7 +381,6 @@ export default function HomePage() {
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
         
-        // Handle different response formats
         let vendorsArray: Vendor[] = [];
         
         if (Array.isArray(data)) {
@@ -424,23 +411,126 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [maxItems]);
 
-  const filtered = useMemo(() => {
-    if (!Array.isArray(vendors)) {
-      return [];
+  // Filter vendors based on search query
+  const filteredVendors = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return vendors.slice(0, maxItems);
     }
     
-    const q = query.trim().toLowerCase();
-    if (!q) return vendors;
-    
-    return vendors.filter((v) =>
-      v.business_name.toLowerCase().includes(q) || 
-      (v.canteen?.name || '').toLowerCase().includes(q)
-    );
-  }, [query, vendors]);
+    const query = searchQuery.toLowerCase().trim();
+    return vendors
+      .filter(vendor => 
+        vendor.business_name.toLowerCase().includes(query) ||
+        vendor.canteen?.name?.toLowerCase().includes(query) ||
+        vendor.canteen?.location?.toLowerCase().includes(query) ||
+        vendor.description?.toLowerCase().includes(query)
+      )
+      .slice(0, maxItems);
+  }, [vendors, searchQuery, maxItems]);
 
-  const vendorsToRender = Array.isArray(filtered) ? filtered : [];
+  if (loading) {
+    return (
+      <section className="my-8">
+        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{title}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(maxItems)].map((_, i) => (
+            <VendorSkeleton key={i} />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="my-8">
+        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{title}</h2>
+        <div className="text-red-600 bg-red-50 p-4 rounded-lg">
+          {error}
+        </div>
+      </section>
+    );
+  }
+
+  if (filteredVendors.length === 0 && searchQuery) {
+    return (
+      <section className="my-8">
+        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Search Results</h2>
+        <div className="text-center py-8 text-gray-500">
+          No canteens found for &quot;{searchQuery}&quot;. Try a different search term.
+        </div>
+      </section>
+    );
+  }
+
+  if (filteredVendors.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="my-8">
+      <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+        {searchQuery ? `Search Results for "${searchQuery}"` : title}
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredVendors.map((vendor) => (
+          <article key={vendor.id} className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow">
+            <div className="relative h-44 w-full rounded-t-lg overflow-hidden bg-gray-200">
+              <Image
+                src={vendor.canteen?.image_url || '/images/canteen-placeholder.jpg'}
+                alt={`${vendor.business_name} image`}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className="object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=1000';
+                }}
+              />
+            </div>
+            <div className="p-4">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">{vendor.business_name}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                {vendor.canteen?.name} • {vendor.canteen?.location || 'No location'}
+              </p>
+
+              <div className="mt-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-sm ${
+                    vendor.is_open 
+                      ? 'bg-emerald-100 text-emerald-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {vendor.is_open ? 'Open' : 'Closed'}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => router.push(`/vendors/${vendor.id}`)}
+                  className="px-3 py-1.5 bg-sky-600 text-white rounded-md text-sm hover:bg-sky-700 transition-colors"
+                >
+                  View Menu
+                </button>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+export default function HomePage() {
+  const router = useRouter();
+  const [query, setQuery] = useState('');
+  const [searchSubmitted, setSearchSubmitted] = useState(false);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchSubmitted(true);
+  };
 
   return (
     <div className="space-y-12 pt-16">
@@ -463,7 +553,7 @@ export default function HomePage() {
               </p>
 
               {/* Search section */}
-              <div className="mt-8 max-w-lg mx-auto md:mx-0">
+              <form onSubmit={handleSearchSubmit} className="mt-8 max-w-lg mx-auto md:mx-0">
                 <label htmlFor="search" className="sr-only">Search for canteens, vendors, or locations</label>
                 <div className="flex items-center bg-white/95 backdrop-blur rounded-lg shadow-lg transition-shadow duration-300 hover:shadow-xl">
                   <div className="pl-4">
@@ -487,7 +577,7 @@ export default function HomePage() {
                     Search
                   </button>
                 </div>
-              </div>
+              </form>
             </div>
 
             {/* Right image section */}
@@ -497,9 +587,9 @@ export default function HomePage() {
                   src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80" 
                   alt="Students enjoying lunch together in campus cafeteria" 
                   fill 
+                  sizes="(max-width: 768px) 100vw, 40vw"
                   className="object-cover"
                   priority 
-                  sizes="(max-width: 768px) 100vw, 40vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
               </div>
@@ -524,96 +614,44 @@ export default function HomePage() {
       `}</style>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Quick Reorder Section (for logged-in users) */}
-        <QuickReorderSection />
+        {/* Show search results when there's a search query */}
+        {(query && searchSubmitted) ? (
+          <PopularCanteensSection 
+            title=""
+            maxItems={12}
+            searchQuery={query}
+          />
+        ) : (
+          <>
+            {/* Quick Reorder Section (for logged-in users) */}
+            <QuickReorderSection />
 
-        {/* Personalized Recommendations */}
-        <PersonalizedSection 
-          title="Recommended For You"
-          maxItems={8}
-        />
+            {/* Personalized Recommendations */}
+            <PersonalizedSection 
+              title="Recommended For You"
+              maxItems={8}
+            />
 
-        {/* Popular Canteens Section - MAIN CONTENT */}
-        <section>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Popular Canteens</h2>
-            <div className="text-sm text-gray-500">
-              {loading ? 'Loading...' : `Showing ${vendorsToRender.length} canteens`}
-            </div>
-          </div>
+            {/* Popular Canteens Section */}
+            <PopularCanteensSection 
+              title="Popular Canteens"
+              maxItems={6}
+            />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {error && (
-              <div className="col-span-full text-red-600 bg-red-50 p-4 rounded-lg">
-                {error}
-              </div>
-            )}
+            {/* Additional Recommendations */}
+            <PersonalizedSection 
+              title="You Might Like"
+              maxItems={6}
+              variant="compact"
+            />
 
-            {/* Loading Skeleton */}
-            {loading && (
-              <>
-                {[1, 2, 3, 4, 5, 6].map((item) => (
-                  <VendorSkeleton key={item} />
-                ))}
-              </>
-            )}
-
-            {!loading && vendorsToRender.length === 0 && (
-              <div className="col-span-full text-gray-600 text-center py-8">
-                No vendors found. {!error && 'The API might be returning an unexpected format.'}
-              </div>
-            )}
-
-            {!loading && vendorsToRender.map((vendor) => (
-              <article key={vendor.id} className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow">
-                <div className="relative h-44 w-full rounded-t-lg overflow-hidden bg-gray-200">
-                  <Image
-                    src={vendor.canteen?.image_url || '/images/canteen-placeholder.jpg'}
-                    alt={`${vendor.business_name} image`}
-                    fill
-                    className="object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=1000';
-                    }}
-                  />
-                </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">{vendor.business_name}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                    {vendor.canteen?.name} • {vendor.canteen?.location || 'No location'}
-                  </p>
-
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-sm ${
-                        vendor.is_open 
-                          ? 'bg-emerald-100 text-emerald-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {vendor.is_open ? 'Open' : 'Closed'}
-                      </span>
-                    </div>
-
-                    <button
-                      onClick={() => router.push(`/vendors/${vendor.id}`)}
-                      className="px-3 py-1.5 bg-sky-600 text-white rounded-md text-sm hover:bg-sky-700 transition-colors"
-                    >
-                      View Menu
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* Additional Recommendations */}
-        <PersonalizedSection 
-          title="You Might Like"
-          maxItems={6}
-          variant="compact"
-        />
+            {/* Trending Products Section */}
+            <PersonalizedSection 
+              title="Trending Now"
+              maxItems={4}
+            />
+          </>
+        )}
       </div>
     </div>
   );

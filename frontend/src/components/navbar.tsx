@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { usePersistTokens } from '@/hooks/usePersistTokens';
-import { Menu, ShoppingCart, User, X } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Menu, ShoppingCart, User } from 'lucide-react';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
 
@@ -48,12 +48,10 @@ const NavLink = ({ href, children, className, onClick }: NavLinkProps) => {
 
 export function Navbar() {
   const { data: session } = useSession();
-  const [isOpen, setIsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   usePersistTokens();
 
   const userRole = (session?.user as UserWithRole | undefined)?.role ?? null;
-  const pathname = usePathname();
 
   const handleLinkClick = () => {
     setIsMobileMenuOpen(false);
@@ -145,17 +143,8 @@ export function Navbar() {
                   </button>
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[300px] sm:w-[400px] dark:bg-gray-900">
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-lg font-semibold">Menu</h2>
-                    <button 
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="p-1 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-                  
-                  <div className="flex flex-col space-y-4">
+                  <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                  <div className="flex flex-col space-y-4 mt-6">
                     <NavLink href="/" onClick={handleLinkClick}>
                       Home
                     </NavLink>
