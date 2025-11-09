@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { requireUserSession } from '@/lib/serverAuth';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface OrderItemCustomization {
   option: number;
@@ -281,11 +282,16 @@ export default async function OrdersPage() {
                     {order.items?.map((item) => (
                       <li key={item.id} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
                         {item.product_details?.image_url && (
-                          <img 
-                            src={item.product_details.image_url} 
-                            alt={item.product_details.name}
-                            className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
-                          />
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+                            <Image 
+                              src={item.product_details.image_url} 
+                              alt={item.product_details.name}
+                              fill
+                              sizes="48px"
+                              className="object-cover"
+                              
+                            />
+                          </div>
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-gray-800 dark:text-white">
