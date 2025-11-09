@@ -263,7 +263,7 @@ export default async function OrdersPage() {
                       <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                         <div>Order #{order.id}</div>
                         <div>
-                          Placed on {orderDateTime.date} at {orderDateTime.time} (IST)
+                          Placed on {orderDateTime.date} at {orderDateTime.time}
                         </div>
                       </div>
                     </div>
