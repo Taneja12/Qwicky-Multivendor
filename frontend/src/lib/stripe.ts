@@ -7,7 +7,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 // Use the latest API version consistently
-const STRIPE_API_VERSION = '2025-09-30.clover' as const;
+const STRIPE_API_VERSION = '2025-10-29.clover' as const;
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: STRIPE_API_VERSION,
@@ -50,7 +50,7 @@ export const createStripeCheckoutSession = async ({
   cancelUrl: string;
 }) => {
   const stripe = getStripeInstance();
-  
+
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     line_items: createStripeLineItems(cart),
