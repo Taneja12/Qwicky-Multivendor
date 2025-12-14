@@ -15,6 +15,10 @@ export const metadata: Metadata = {
   description:
     'Preorder food from campus canteens, skip the line, and enjoy fresh meals.',
 
+  verification: {
+    google: 'CjJuRyTxjMXqAelGrEvCRVpfnoCy70GN7amIHFWC1KI', // 👈 paste content here
+  },  
+
   authors: [{ name: 'Qwicky Team' }],
 
   openGraph: {
