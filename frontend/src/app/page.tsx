@@ -27,11 +27,11 @@ type Product = {
   name: string;
   price: number | string;
   description?: string;
-  image?: any; 
+  image?: any;
   image_url?: string | null;
   is_available?: boolean;
   is_veg?: boolean;
-  vendor: number| { // Can be ID or object
+  vendor: number | { // Can be ID or object
     id: number;
     business_name: string;
   };
@@ -102,19 +102,19 @@ const ProductCard = ({ product, compact = false }: { product: Product; compact?:
     if (typeof product.image_url === 'string') {
       return product.image_url;
     }
-    
+
     if (product.image && typeof product.image === 'object' && product.image.url) {
       return product.image.url;
     }
-    
+
     if (product.image && typeof product.image === 'object' && product.image.secure_url) {
       return product.image.secure_url;
     }
-    
+
     if (typeof product.image === 'string') {
       return product.image;
     }
-    
+
     return '/images/product-placeholder.jpg';
   };
 
@@ -122,7 +122,7 @@ const ProductCard = ({ product, compact = false }: { product: Product; compact?:
 
   if (compact) {
     return (
-      <div 
+      <div
         className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer p-3"
         onClick={handleProductClick}
       >
@@ -146,7 +146,7 @@ const ProductCard = ({ product, compact = false }: { product: Product; compact?:
   }
 
   return (
-    <div 
+    <div
       className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer p-4"
       onClick={handleProductClick}
     >
@@ -178,12 +178,12 @@ const ProductCard = ({ product, compact = false }: { product: Product; compact?:
 };
 
 // Personalized Recommendations Section
-const PersonalizedSection = ({ 
-  title = "Recommended For You", 
+const PersonalizedSection = ({
+  title = "Recommended For You",
   maxItems = 8,
   variant = 'default'
-}: { 
-  title?: string; 
+}: {
+  title?: string;
   maxItems?: number;
   variant?: 'default' | 'compact';
 }) => {
@@ -210,7 +210,7 @@ const PersonalizedSection = ({
           }
         }
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         setRecommendations(data.recommendations || []);
@@ -251,9 +251,8 @@ const PersonalizedSection = ({
     return (
       <section className="my-8">
         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{title}</h2>
-        <div className={`grid gap-4 ${
-          variant === 'compact' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
-        }`}>
+        <div className={`grid gap-4 ${variant === 'compact' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
+          }`}>
           {[...Array(maxItems)].map((_, i) => (
             <ProductSkeleton key={i} compact={variant === 'compact'} />
           ))}
@@ -269,14 +268,13 @@ const PersonalizedSection = ({
   return (
     <section className="my-8">
       <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{title}</h2>
-      <div className={`grid gap-4 ${
-        variant === 'compact' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
-      }`}>
+      <div className={`grid gap-4 ${variant === 'compact' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
+        }`}>
         {recommendations.map((product) => (
-          <ProductCard 
-            key={product.id} 
-            product={product} 
-            compact={variant === 'compact'} 
+          <ProductCard
+            key={product.id}
+            product={product}
+            compact={variant === 'compact'}
           />
         ))}
       </div>
@@ -285,11 +283,11 @@ const PersonalizedSection = ({
 };
 
 // Quick Reorder Section
-const QuickReorderSection = ({ 
+const QuickReorderSection = ({
   title = "Quick Reorder",
   maxItems = 6
-}: { 
-  title?: string; 
+}: {
+  title?: string;
   maxItems?: number;
 }) => {
   const { data: session } = useSession();
@@ -312,7 +310,7 @@ const QuickReorderSection = ({
           }
         }
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         setQuickReorder(data.quick_reorder || []);
@@ -358,12 +356,12 @@ const QuickReorderSection = ({
 };
 
 // Popular Canteens Section Component
-const PopularCanteensSection = ({ 
+const PopularCanteensSection = ({
   title = "Popular Canteens",
   maxItems = 6,
   searchQuery = ""
-}: { 
-  title?: string; 
+}: {
+  title?: string;
   maxItems?: number;
   searchQuery?: string;
 }) => {
@@ -375,14 +373,14 @@ const PopularCanteensSection = ({
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    
+
     fetch(`${API_BASE}/api/vendors/vendors/`)
       .then(async (res) => {
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
-        
+
         let vendorsArray: Vendor[] = [];
-        
+
         if (Array.isArray(data)) {
           vendorsArray = data;
         } else if (data && Array.isArray(data.results)) {
@@ -392,7 +390,7 @@ const PopularCanteensSection = ({
         } else if (data && typeof data === 'object') {
           vendorsArray = [data];
         }
-        
+
         if (mounted) {
           setVendors(vendorsArray);
         }
@@ -418,10 +416,10 @@ const PopularCanteensSection = ({
     if (!searchQuery.trim()) {
       return vendors.slice(0, maxItems);
     }
-    
+
     const query = searchQuery.toLowerCase().trim();
     return vendors
-      .filter(vendor => 
+      .filter(vendor =>
         vendor.business_name.toLowerCase().includes(query) ||
         vendor.canteen?.name?.toLowerCase().includes(query) ||
         vendor.canteen?.location?.toLowerCase().includes(query) ||
@@ -498,11 +496,10 @@ const PopularCanteensSection = ({
 
               <div className="mt-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-sm ${
-                    vendor.is_open 
-                      ? 'bg-emerald-100 text-emerald-800' 
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-sm ${vendor.is_open
+                      ? 'bg-emerald-100 text-emerald-800'
                       : 'bg-red-100 text-red-800'
-                  }`}>
+                    }`}>
                     {vendor.is_open ? 'Open' : 'Closed'}
                   </span>
                 </div>
@@ -534,12 +531,28 @@ export default function HomePage() {
 
   return (
     <div className="space-y-12 pt-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'Qwicky',
+            url: 'http://localhost:3000',
+            logo: 'http://localhost:3000/icons/icon-512x512.png',
+            sameAs: [
+              'https://twitter.com/qwicky',
+              'https://instagram.com/qwicky'
+            ]
+          })
+        }}
+      />
       {/* Hero Section */}
       <header className="relative bg-gradient-to-br from-emerald-500 via-emerald-400 to-sky-400 rounded-xl p-8 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black/5" 
-             style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '20px 20px' }} 
+        <div className="absolute inset-0 bg-black/5"
+          style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '20px 20px' }}
         />
-        
+
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="flex flex-col md:flex-row items-center justify-between gap-12">
             {/* Left content section */}
@@ -547,7 +560,7 @@ export default function HomePage() {
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
                 Order ahead from campus canteens
               </h1>
-              
+
               <p className="mt-4 text-xl text-white/90">
                 Fast pickup, hygienic kitchens, and student discounts.
               </p>
@@ -583,13 +596,13 @@ export default function HomePage() {
             {/* Right image section */}
             <div className="w-full md:w-2/5 max-w-lg">
               <div className="relative aspect-[4/3] rounded-xl overflow-hidden shadow-xl transition-transform duration-300 hover:scale-[1.02]">
-                <Image 
-                  src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80" 
-                  alt="Students enjoying lunch together in campus cafeteria" 
-                  fill 
+                <Image
+                  src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80"
+                  alt="Students enjoying lunch together in campus cafeteria"
+                  fill
                   sizes="(max-width: 768px) 100vw, 40vw"
                   className="object-cover"
-                  priority 
+                  priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
               </div>
@@ -616,7 +629,7 @@ export default function HomePage() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Show search results when there's a search query */}
         {(query && searchSubmitted) ? (
-          <PopularCanteensSection 
+          <PopularCanteensSection
             title=""
             maxItems={12}
             searchQuery={query}
@@ -627,26 +640,26 @@ export default function HomePage() {
             <QuickReorderSection />
 
             {/* Personalized Recommendations */}
-            <PersonalizedSection 
+            <PersonalizedSection
               title="Recommended For You"
               maxItems={8}
             />
 
             {/* Popular Canteens Section */}
-            <PopularCanteensSection 
+            <PopularCanteensSection
               title="Popular Canteens"
               maxItems={6}
             />
 
             {/* Additional Recommendations */}
-            <PersonalizedSection 
+            <PersonalizedSection
               title="You Might Like"
               maxItems={6}
               variant="compact"
             />
 
             {/* Trending Products Section */}
-            <PersonalizedSection 
+            <PersonalizedSection
               title="Trending Now"
               maxItems={4}
             />

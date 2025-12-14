@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 // import api from '../../../lib/api';
 import Image from 'next/image';
 // import { toast } from 'react-hot-toast';
@@ -53,13 +54,34 @@ async function getProducts(id: string): Promise<Product[]> {
   }
 
   const data = await res.json();
-  
+
   // Handle DRF's pagination format
   return Array.isArray(data) ? data : data.results ? data.results : [];
 }
 
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const { id } = await params;
+  try {
+    const vendor = await getVendorData(id);
+
+    return {
+      title: vendor.business_name,
+      description: vendor.description || `Order from ${vendor.business_name} on Qwicky`,
+      openGraph: {
+        title: vendor.business_name,
+        description: vendor.description || `Order from ${vendor.business_name} on Qwicky`,
+        images: vendor.canteen?.image_url ? [vendor.canteen.image_url] : [],
+      },
+    };
+  } catch (error) {
+    return {
+      title: 'Vendor Not Found',
+    };
+  }
+}
+
 export default async function VendorPage({ params }: { params: { id: string } }) {
-  const {id } = await params;
+  const { id } = await params;
   let vendor: Vendor;
   let products: Product[];
 
@@ -78,12 +100,12 @@ export default async function VendorPage({ params }: { params: { id: string } })
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div className="flex items-center gap-6">
           <div className="w-36 h-24 relative rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700">
-            <Image 
-              src={vendor.canteen?.image_url || '/images/canteen-placeholder.jpg'} 
-              alt={`${vendor.business_name} image`} 
-              fill 
+            <Image
+              src={vendor.canteen?.image_url || '/images/canteen-placeholder.jpg'}
+              alt={`${vendor.business_name} image`}
+              fill
               sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              className="object-cover" 
+              className="object-cover"
             />
           </div>
           <div>
@@ -108,10 +130,10 @@ export default async function VendorPage({ params }: { params: { id: string } })
             {products.map((product) => (
               <li key={product.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col">
                 <div className="relative w-full h-36 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700">
-                  <Image 
-                    src={product.image_url || '/images/product-placeholder.jpg'} 
-                    alt={product.name} 
-                    fill 
+                  <Image
+                    src={product.image_url || '/images/product-placeholder.jpg'}
+                    alt={product.name}
+                    fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     className="object-cover"
                   />

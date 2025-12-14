@@ -1,8 +1,15 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Canteens & Vendors',
+  description: 'Browse all available canteens and vendors on Qwicky.',
+};
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+export const dynamic = 'force-dynamic';
 
 function getImageUrl(raw?: string | null) {
   if (!raw) return '/images/canteen-placeholder.jpg';
@@ -11,18 +18,18 @@ function getImageUrl(raw?: string | null) {
   return `${API_BASE}/${raw}`;
 }
 
-type Canteen = { 
-  id: number; 
-  name: string; 
-  location?: string | null; 
+type Canteen = {
+  id: number;
+  name: string;
+  location?: string | null;
   image?: string | null;
   image_url?: string | null;
 };
 
-type Vendor = { 
-  id: number; 
-  business_name: string; 
-  description?: string | null; 
+type Vendor = {
+  id: number;
+  business_name: string;
+  description?: string | null;
   canteen?: Canteen | null;
   canteen_details?: Canteen | null;
 };
@@ -30,14 +37,14 @@ type Vendor = {
 async function getVendors() {
   try {
     const res = await fetch(`${API_BASE}/api/vendors/vendors/`, { cache: 'no-store' });
-    
+
     if (!res.ok) {
       console.error('Failed to fetch vendors, status:', res.status);
       return [];
     }
 
     const data = await res.json();
-    
+
     // Handle different response formats
     if (Array.isArray(data)) {
       return data;
@@ -48,7 +55,7 @@ async function getVendors() {
     } else if (data && typeof data === 'object') {
       return [data];
     }
-    
+
     return [];
   } catch (error) {
     console.error('Error fetching vendors:', error);
@@ -65,7 +72,7 @@ export default async function VendorsPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Canteens & Vendors</h1>
-      
+
       {safeVendors.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-gray-600 dark:text-gray-400">No vendors found.</p>
@@ -80,11 +87,11 @@ export default async function VendorsPage() {
             return (
               <div key={v.id} className="rounded-lg overflow-hidden shadow hover:shadow-lg transition">
                 <div className="relative h-40 w-full">
-                  <Image 
-                    src={getImageUrl(imageUrl)} 
-                    alt={`${v.business_name} image`} 
-                    fill 
-                    className="object-cover" 
+                  <Image
+                    src={getImageUrl(imageUrl)}
+                    alt={`${v.business_name} image`}
+                    fill
+                    className="object-cover"
                   />
                 </div>
                 <div className="p-4 bg-white dark:bg-gray-800">

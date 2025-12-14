@@ -32,7 +32,6 @@ if os.getenv('ALLOWED_HOSTS'):
 
 # FIX: Remove all SSL redirect settings for Render
 # Render handles HTTPS automatically, so no redirects needed
-SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False  # Set to False to avoid redirect issues
 CSRF_COOKIE_SECURE = False     # Set to False to avoid redirect issues
 
