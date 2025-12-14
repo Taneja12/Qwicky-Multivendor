@@ -5,7 +5,7 @@ import { Navbar } from '@/components/navbar';
 import SessionChecker from '@/components/SessionChecker';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://qwicky-multivendor.vercel.app'),
 
   title: {
     default: 'Qwicky - Campus Food Pre-ordering',
