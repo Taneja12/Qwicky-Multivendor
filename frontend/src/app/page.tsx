@@ -8,14 +8,14 @@ export const metadata: Metadata = {
     'Preorder food from campus canteens, skip queues, and enjoy fresh meals on campus.',
 
   alternates: {
-    canonical: process.env.NEXT_PUBLIC_APP_URL,
+    canonical: process.env.NEXT_PUBLIC_APP_URL || 'https://qwicky-multivendor.vercel.app',
   },
 
   openGraph: {
     title: 'Order Food from Campus Canteens | Qwicky',
     description:
       'Preorder food from campus canteens, skip queues, and enjoy fresh meals on campus.',
-    url: process.env.NEXT_PUBLIC_APP_URL,
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://qwicky-multivendor.vercel.app',
   },
 
   twitter: {

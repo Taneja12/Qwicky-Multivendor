@@ -497,8 +497,8 @@ const PopularCanteensSection = ({
               <div className="mt-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-sm ${vendor.is_open
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-red-100 text-red-800'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-red-100 text-red-800'
                     }`}>
                     {vendor.is_open ? 'Open' : 'Closed'}
                   </span>
@@ -538,8 +538,8 @@ export default function HomePage() {
             '@context': 'https://schema.org',
             '@type': 'Organization',
             name: 'Qwicky',
-            url: 'http://localhost:3000',
-            logo: 'http://localhost:3000/icons/icon-512x512.png',
+            url: process.env.NEXT_PUBLIC_APP_URL || 'https://qwicky-multivendor.vercel.app',
+            logo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://qwicky-multivendor.vercel.app'}/icons/icon-512x512.png`,
             sameAs: [
               'https://twitter.com/qwicky',
               'https://instagram.com/qwicky'
