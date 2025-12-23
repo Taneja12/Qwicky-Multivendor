@@ -2,6 +2,7 @@
 
 Qwicky is a full-stack web application that allows students to pre-order food from multiple college canteen vendors, manage separate carts per vendor, and pay securely online.
 
+🔗 **Live Demo:** https://qwicky-multivendor.vercel.app/
 ---
 
 ## 🚀 Features
